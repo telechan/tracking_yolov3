@@ -14,7 +14,7 @@ def detect_img(yolo):
             print('Open Error! Try again!')
             continue
         else:
-            r_image, r_boxes, r_scores, r_classes= yolo.detect_image(image)
+            r_image = yolo.detect_image(image)
             file_path, ext = os.path.splitext(img)
             cv2.imwrite(file_path + "_out" + ext, np.asarray(r_image)[..., ::-1])
             r_image.show()

@@ -142,19 +142,6 @@ class YOLO(object):
                 size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
         thickness = (image.size[0] + image.size[1]) // 300
 
-        # objects = self.ct.update(out_boxes2)
-
-        # for (objectID, centroid) in objects.items():
-        #     text = "ID {}".format(objectID)
-        #     draw = ImageDraw.Draw(image)
-
-        #     draw.ellipse(
-        #         [centroid[0] - 5, centroid[1] -5, centroid[0] + 5, centroid[1] + 5],
-        #         fill=(234, 59, 240)
-        #     )
-        #     draw.text((centroid[0] -30, centroid[1] -40), text, fill=(234, 59, 240), font=font)
-        #     del draw
-
         if len(out_classes2) != 0:
             # print('Found {} boxes for {}'.format(len(out_boxes2), 'img'))
 
@@ -198,7 +185,7 @@ class YOLO(object):
 
         end = timer()
         print(end - start)
-        return image, out_boxes2, out_scores2, out_classes2
+        return image
 
     def close_session(self):
         self.sess.close()
@@ -225,7 +212,7 @@ def detect_video(yolo, video_path, output_path=""):
         return_value, frame = vid.read()
         if type(frame) == type(None): break
         image = Image.fromarray(frame)
-        image, out_boxes, out_scores, out_classes= yolo.detect_image(image)
+        image = yolo.detect_image(image)
         result = np.asarray(image)
         curr_time = timer()
         exec_time = curr_time - prev_time
