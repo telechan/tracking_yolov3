@@ -181,7 +181,7 @@ class YOLO(object):
                         [left + i, top + i, right - i, bottom - i],
                         outline=self.colors[c])
 
-                del draw
+                # del draw
 
         objects = self.ct.update(out_boxes2)
 
@@ -204,7 +204,6 @@ class YOLO(object):
         self.sess.close()
 
 def detect_video(yolo, video_path, output_path=""):
-    import cv2
     if video_path.isdigit():
         video_path = int(video_path)
     vid = cv2.VideoCapture(video_path)
@@ -246,25 +245,3 @@ def detect_video(yolo, video_path, output_path=""):
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     yolo.close_session()
-
-def detect_img(yolo):
-    while True:
-        img = input('Input image filename:')
-        try:
-            image = Image.open(img)
-        except:
-            print('Open Error! Try again!')
-            continue
-        else:
-            r_image, r_boxes, r_scores, r_classes= yolo.detect_image(image)
-            print(type(r_image))
-            print(r_boxes)
-            print(r_scores)
-            print(r_classes)
-            import cv2
-            cv2.imwrite("out.jpg", np.asarray(r_image)[..., ::-1])
-            r_image.show()
-    yolo.close_session()
-
-if __name__ == '__main__':
-    detect_img(YOLO())

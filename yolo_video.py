@@ -2,6 +2,21 @@ import sys
 import argparse
 from yolo import YOLO, detect_video
 from PIL import Image
+import numpy as np
+import cv2
+
+# def detect_img(yolo):
+#     while True:
+#         img = input('Input image filename:')
+#         try:
+#             image = Image.open(img)
+#         except:
+#             print('Open Error! Try again!')
+#             continue
+#         else:
+#             r_image = yolo.detect_image(image)
+#             r_image.show()
+#     yolo.close_session()
 
 def detect_img(yolo):
     while True:
@@ -12,7 +27,8 @@ def detect_img(yolo):
             print('Open Error! Try again!')
             continue
         else:
-            r_image = yolo.detect_image(image)
+            r_image, r_boxes, r_scores, r_classes= yolo.detect_image(image)
+            cv2.imwrite("out_" + img, np.asarray(r_image)[..., ::-1])
             r_image.show()
     yolo.close_session()
 
@@ -52,7 +68,7 @@ if __name__ == '__main__':
     Command line positional arguments -- for video detection mode
     '''
     parser.add_argument(
-        "--input", nargs='?', type=str,required=False,default='./path2your_video',
+        "--input", nargs='?', type=str,required=False,default='./video/overpass.mp4',
         help = "Video input path"
     )
 
