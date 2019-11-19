@@ -1,4 +1,4 @@
-import sys
+import sys, os
 import argparse
 from yolo import YOLO, detect_video
 from PIL import Image
@@ -15,7 +15,8 @@ def detect_img(yolo):
             continue
         else:
             r_image, r_boxes, r_scores, r_classes= yolo.detect_image(image)
-            cv2.imwrite("out_" + img, np.asarray(r_image)[..., ::-1])
+            file_path, ext = os.path.splitext(img)
+            cv2.imwrite(file_path + "_out" + ext, np.asarray(r_image)[..., ::-1])
             r_image.show()
     yolo.close_session()
 
