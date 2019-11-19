@@ -1,11 +1,13 @@
-import sys
+import sys, os
 import argparse
 from yolo_tiny import YOLO, detect_video
 from PIL import Image
+import numpy as np
+import cv2
 
 def detect_img(yolo):
     while True:
-        img = input('Input image filename:')
+        img = input('Input image filepath:')
         try:
             image = Image.open(img)
         except:
@@ -13,6 +15,8 @@ def detect_img(yolo):
             continue
         else:
             r_image = yolo.detect_image(image)
+            file_path, ext = os.path.splitext(img)
+            cv2.imwrite(file_path + "_out" + ext, np.asarray(r_image)[..., ::-1])
             r_image.show()
     yolo.close_session()
 
