@@ -1,7 +1,7 @@
-# Tracking YOLOv3
+# Car tracking YOLOv3
 
 ## Introduction
-This is an implementation of the tracking function to [keras-yolo3](https://github.com/qqwweee/keras-yolo3).
+This is an implementation of the car tracking function to [keras-yolo3](https://github.com/qqwweee/keras-yolo3).
  It used the centroid tracking algorithm of [this article](https://www.pyimagesearch.com/2018/08/13/opencv-people-counter/).
 
 ## Requirements
@@ -50,7 +50,7 @@ python yolo_video.py --image
 python yolo_video_tiny.py --image
 ```
 
-Then type your image path.
+Then enter your image path. The result image will be output to the same directory.
 ```bash
 Image detection mode
  Ignoring remaining command line arguments: ./path2your_video,
