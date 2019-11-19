@@ -18,8 +18,8 @@ from yolo3.utils import letterbox_image
 import os
 from keras.utils import multi_gpu_model
 
-from pyimagesearch.centroidtracker import CentroidTracker
-from pyimagesearch.trackableobject import TrackableObject
+from tracker.centroidtracker import CentroidTracker
+from tracker.trackableobject import TrackableObject
 import cv2
 
 class YOLO(object):
