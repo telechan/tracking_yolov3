@@ -21,6 +21,7 @@ from keras.utils import multi_gpu_model
 from tracker.centroidtracker import CentroidTracker
 from tracker.trackableobject import TrackableObject
 import cv2
+import dlib
 
 class YOLO(object):
     _defaults = {
@@ -47,7 +48,11 @@ class YOLO(object):
         self.anchors = self._get_anchors()
         self.sess = K.get_session()
         self.boxes, self.scores, self.classes = self.generate()
-        self.ct = CentroidTracker()
+        self.ct = CentroidTracker(maxDisappeared=40, maxDistance=50)
+        self.trackers = []
+        self.trackableObjects = {}
+        self.totalDown = 0
+        self.totalUp = 0
 
     def _get_class(self):
         classes_path = os.path.expanduser(self.classes_path)
@@ -106,6 +111,8 @@ class YOLO(object):
 
     def detect_image(self, image):
         start = timer()
+        rects = []
+        self.trackers = []
 
         if self.model_image_size != (None, None):
             assert self.model_image_size[0]%32 == 0, 'Multiples of 32 required'
@@ -142,8 +149,11 @@ class YOLO(object):
                 size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
         thickness = (image.size[0] + image.size[1]) // 300
 
+        tracker = dlib.correlation_tracker()
         if len(out_classes2) != 0:
             # print('Found {} boxes for {}'.format(len(out_boxes2), 'img'))
+
+            # tracker = dlib.correlation_tracker()
 
             for i, c in reversed(list(enumerate(out_classes2))):
                 predicted_class = self.class_names[c]
@@ -162,6 +172,10 @@ class YOLO(object):
                 
                 print(label, (left, top), (right, bottom))
 
+                # rect = dlib.rectangle(left, top, right, bottom)
+                tracker.start_track(image, dlib.rectangle(left, top, right, bottom))
+                self.trackers.append(tracker)
+
                 # My kingdom for a good redistributable image drawing library.
                 for i in range(thickness):
                     draw.rectangle(
@@ -170,9 +184,38 @@ class YOLO(object):
 
                 # del draw
 
+        for tracker in self.trackers:
+            tracker.update(image)
+            pos = tracker.get_position()
+
+            startX = pos.left()
+            startY = pos.top()
+            endX = pos.right()
+            endY = pos.bottom()
+
+            rects.append((startX, startY, endX, endY))
+
         objects = self.ct.update(out_boxes2)
 
         for (objectID, centroid) in objects.items():
+            to = self.trackableObjects.get(objectID, None)
+
+            if to is None:
+                to = TrackableObject(objectID, centroid)
+            else:
+                y = [c[1] for c in to.centroids]
+                direction = centroid[1] - np.mean(y)
+                to.centroids.append(centroid)
+
+                if not to.counted:
+                    if direction < 0 and centroid[1] < image.height // 2:
+                        self.totalUp += 1
+                        to.counted = True
+                    elif direction > 0 and centroid[1] > image.height // 2:
+                        self.totalDown += 1
+                        to.counted = True
+            self.trackableObjects[objectID] = to
+
             text = "ID {}".format(objectID)
             draw = ImageDraw.Draw(image)
 
@@ -180,7 +223,23 @@ class YOLO(object):
                 [centroid[0] - 5, centroid[1] -5, centroid[0] + 5, centroid[1] + 5],
                 fill=(234, 59, 240)
             )
+
+            draw.line(
+                [(0, image.size[1] // 2), (image.size[0], image.size[1] // 2)],
+                (0, 255, 255),
+                10)
+
             draw.text((centroid[0] -30, centroid[1] -40), text, fill=(234, 59, 240), font=font)
+
+            info = [
+		        ("Up", totalUp),
+		        ("Down", totalDown),
+	        ]
+
+            for (i, (k, v)) in enumerate(info):
+                textInfo = "{}: {}".format(k, v)
+                draw.text((10, image.height - ((i * 20) + 20)), textInfo, fill=(234, 59, 240), font=font)
+
             del draw
 
         end = timer()
