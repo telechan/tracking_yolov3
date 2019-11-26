@@ -142,6 +142,15 @@ class YOLO(object):
                 size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
         thickness = (image.size[0] + image.size[1]) // 300
 
+        width, height = image.size
+        draw = ImageDraw.Draw(image)
+        draw.line(
+            [(width // 2, 0), (width // 2, height)],
+            fill=(234, 59, 240),
+            width=10,
+        )
+        del draw
+
         if len(out_classes2) != 0:
             # print('Found {} boxes for {}'.format(len(out_boxes2), 'img'))
 
