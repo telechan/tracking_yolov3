@@ -47,7 +47,7 @@ class YOLO(object):
         self.anchors = self._get_anchors()
         self.sess = K.get_session()
         self.boxes, self.scores, self.classes = self.generate()
-        self.ct = CentroidTracker()
+        # self.ct = CentroidTracker()
 
     def _get_class(self):
         classes_path = os.path.expanduser(self.classes_path)
@@ -142,6 +142,15 @@ class YOLO(object):
                 size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
         thickness = (image.size[0] + image.size[1]) // 300
 
+        width, height = image.size
+        draw = ImageDraw.Draw(image)
+        draw.line(
+            [(width // 2, 0), (width // 2, height)],
+            fill=(234, 59, 240),
+            width=10,
+        )
+        del draw
+
         if len(out_classes2) != 0:
             # print('Found {} boxes for {}'.format(len(out_boxes2), 'img'))
 
@@ -170,22 +179,22 @@ class YOLO(object):
 
                 # del draw
 
-        objects = self.ct.update(out_boxes2)
+        # objects = self.ct.update(out_boxes2)
 
-        for (objectID, centroid) in objects.items():
-            text = "ID {}".format(objectID)
-            draw = ImageDraw.Draw(image)
+        # for (objectID, centroid) in objects.items():
+        #     text = "ID {}".format(objectID)
+        #     draw = ImageDraw.Draw(image)
 
-            draw.ellipse(
-                [centroid[0] - 5, centroid[1] -5, centroid[0] + 5, centroid[1] + 5],
-                fill=(234, 59, 240)
-            )
-            draw.text((centroid[0] -30, centroid[1] -40), text, fill=(234, 59, 240), font=font)
-            del draw
+        #     draw.ellipse(
+        #         [centroid[0] - 5, centroid[1] -5, centroid[0] + 5, centroid[1] + 5],
+        #         fill=(234, 59, 240)
+        #     )
+        #     draw.text((centroid[0] -30, centroid[1] -40), text, fill=(234, 59, 240), font=font)
+        #     del draw
 
         end = timer()
         print(end - start)
-        return image
+        return image, out_boxes2
 
     def close_session(self):
         self.sess.close()
@@ -206,13 +215,57 @@ def detect_video(yolo, video_path, output_path=""):
         out = cv2.VideoWriter(output_path, video_FourCC, video_fps, video_size)
     accum_time = 0
     curr_fps = 0
+    ct = CentroidTracker(maxDisappeared=60, maxDistance=70)
+    trackers = []
+    trackableObjects = {}
+    toLeft = 0
+    toRight = 0
     fps = "FPS: ??"
     prev_time = timer()
     while True:
         return_value, frame = vid.read()
         if type(frame) == type(None): break
         image = Image.fromarray(frame)
-        image = yolo.detect_image(image)
+        image, out_boxes = yolo.detect_image(image)
+        font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
+                size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
+        width, height = image.size
+        objects = ct.update(out_boxes)
+        for (objectID, centroid) in objects.items():
+            to = trackableObjects.get(objectID, None)
+            if to is None:
+                to = TrackableObject(objectID, centroid)
+            else:
+                x = [c[0] for c in to.centroids]
+                direction = centroid[0] - np.mean(x)
+                to.centroids.append(centroid)
+                if not to.counted:
+                    if direction < 0 and centroid[0] < width // 2:
+                        toLeft += 1
+                        to.counted = True
+                    elif direction > 0 and centroid[0] > width // 2:
+                        toRight += 1
+                        to.counted = True
+            trackableObjects[objectID] = to
+
+            text = "ID {}".format(objectID)
+            draw = ImageDraw.Draw(image)
+
+            draw.ellipse(
+                [centroid[0] - 5, centroid[1] -5, centroid[0] + 5, centroid[1] + 5],
+                fill=(234, 59, 240)
+            )
+            draw.text((centroid[0] -30, centroid[1] -40), text, fill=(234, 59, 240), font=font)
+            del draw
+        info = [
+            ("to left", toLeft),
+            ("to right", toRight)
+        ]
+        for (i, (k, v)) in enumerate(info):
+            textInfo = "{}: {}".format(k, v)
+            draw = ImageDraw.Draw(image)
+            draw.text((10, height - ((40 * i) + 40)), textInfo, fill=(234, 59, 240), font=font)
+            del draw
         result = np.asarray(image)
         curr_time = timer()
         exec_time = curr_time - prev_time
