@@ -215,7 +215,7 @@ def detect_video(yolo, video_path, output_path=""):
         out = cv2.VideoWriter(output_path, video_FourCC, video_fps, video_size)
     accum_time = 0
     curr_fps = 0
-    ct = CentroidTracker()
+    ct = CentroidTracker(maxDisappeared=60, maxDistance=70)
     trackers = []
     trackableObjects = {}
     toLeft = 0
@@ -258,8 +258,8 @@ def detect_video(yolo, video_path, output_path=""):
             draw.text((centroid[0] -30, centroid[1] -40), text, fill=(234, 59, 240), font=font)
             del draw
         info = [
-            ("to left:", toLeft),
-            ("to right:", toRight)
+            ("to left", toLeft),
+            ("to right", toRight)
         ]
         for (i, (k, v)) in enumerate(info):
             textInfo = "{}: {}".format(k, v)
