@@ -205,7 +205,8 @@ def detect_video(yolo, video_path, output_path=""):
     vid = cv2.VideoCapture(video_path)
     if not vid.isOpened():
         raise IOError("Couldn't open webcam or video")
-    video_FourCC    = int(vid.get(cv2.CAP_PROP_FOURCC))
+    # video_FourCC    = int(vid.get(cv2.CAP_PROP_FOURCC))
+    video_FourCC = cv2.VideoWriter_fourcc(*"mp4v")
     video_fps       = vid.get(cv2.CAP_PROP_FPS)
     video_size      = (int(vid.get(cv2.CAP_PROP_FRAME_WIDTH)),
                         int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT)))
@@ -215,7 +216,7 @@ def detect_video(yolo, video_path, output_path=""):
         out = cv2.VideoWriter(output_path, video_FourCC, video_fps, video_size)
     accum_time = 0
     curr_fps = 0
-    ct = CentroidTracker(maxDisappeared=60, maxDistance=70)
+    ct = CentroidTracker(maxDisappeared=50, maxDistance=70)
     trackers = []
     trackableObjects = {}
     toLeft = 0
