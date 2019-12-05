@@ -8,11 +8,11 @@ This is an implementation of the car tracking and counting function to [keras-yo
 
 My test environment is:
 - Python 3.6.7
-- tensorflow 1.14.0
-- Keras 2.3.1
-- opencv-python 4.1.1.26
+- tensorflow 1.12.0
+- Keras 2.1.6
+- opencv-python 4.1.2.30
 - pillow 6.2.1
-- matplotlib 3.1.1
+- matplotlib 3.1.2
 - numpy 1.17.4
 
 You can install by running the following code:
