@@ -47,7 +47,6 @@ class YOLO(object):
         self.anchors = self._get_anchors()
         self.sess = K.get_session()
         self.boxes, self.scores, self.classes = self.generate()
-        # self.ct = CentroidTracker()
 
     def _get_class(self):
         classes_path = os.path.expanduser(self.classes_path)
@@ -178,19 +177,6 @@ class YOLO(object):
                         outline=self.colors[c])
 
                 # del draw
-
-        # objects = self.ct.update(out_boxes2)
-
-        # for (objectID, centroid) in objects.items():
-        #     text = "ID {}".format(objectID)
-        #     draw = ImageDraw.Draw(image)
-
-        #     draw.ellipse(
-        #         [centroid[0] - 5, centroid[1] -5, centroid[0] + 5, centroid[1] + 5],
-        #         fill=(234, 59, 240)
-        #     )
-        #     draw.text((centroid[0] -30, centroid[1] -40), text, fill=(234, 59, 240), font=font)
-        #     del draw
 
         end = timer()
         print(end - start)
