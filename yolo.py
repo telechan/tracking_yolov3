@@ -235,8 +235,8 @@ def detect_video(yolo, video_path, output_path=""):
     curr_fps = 0
     ct = CentroidTracker(maxDisappeared=50, maxDistance=70)
     trackableObjects = {}
-    toLeft = 0
-    toRight = 0
+    to_left = 0
+    to_right = 0
     fps = "FPS: ??"
     prev_time = timer()
     while True:
@@ -245,7 +245,7 @@ def detect_video(yolo, video_path, output_path=""):
         image = Image.fromarray(frame)
         image, out_boxes = yolo.detect_image(image)
         objects = ct.update(out_boxes)
-        image, toLeft, toRight = track_objects(image, objects, toLeft, toRight, trackableObjects)
+        image, to_left, to_right = track_objects(image, objects, to_left, to_right, trackableObjects)
         result = np.asarray(image)
         curr_time = timer()
         exec_time = curr_time - prev_time
