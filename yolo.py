@@ -195,11 +195,11 @@ def track_objects(image, objects, toLeft, toRight, trackableObjects):
 
         text = "ID {}".format(objectID)
         draw = ImageDraw.Draw(image)
-        draw.line(
-            [(image.width // 2, 0), (image.width // 2, image.height)],
-            fill=(234, 59, 240),
-            width=10,
-        )
+        # draw.line(
+        #     [(0, image.height // 2), (image.width, image.height // 2)],
+        #     fill=(234, 59, 240),
+        #     width=10,
+        # )
         draw.ellipse(
             [centroid[0] - 5, centroid[1] -5, centroid[0] + 5, centroid[1] + 5],
             fill=(234, 59, 240)
