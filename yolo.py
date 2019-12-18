@@ -172,34 +172,36 @@ class YOLO(object):
     def close_session(self):
         self.sess.close()
 
-def track_objects(image, objects, toLeft, toRight, trackableObjects):
+h = 4
+
+def track_objects(image, objects, count1, count2, trackableObjects):
     font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
                 size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
+    # h = 4
 
     for (objectID, centroid) in objects.items():
         to = trackableObjects.get(objectID, None)
         if to is None:
             to = TrackableObject(objectID, centroid)
         else:
-            x = [c[0] for c in to.centroids]
-            direction = centroid[0] - np.mean(x)
+            # x = [c[0] for c in to.centroids]
+            y = [c[1] for c in to.centroids]
+
+            # direction_x = centroid[0] - np.mean(x)
+            direction_y = centroid[1] - np.mean(y)
+
             to.centroids.append(centroid)
             if not to.counted:
-                if direction < 0 and centroid[0] < image.width // 2:
-                    toLeft += 1
+                if direction_y < 0 and centroid[1] < ((h - 1) * image.height * centroid[0]) / (h * image.width) + (image.height / h):
+                    count1 += 1
                     to.counted = True
-                elif direction > 0 and centroid[0] > image.width // 2:
-                    toRight += 1
+                elif direction_y > 0 and centroid[1] > ((h - 1) * image.height * centroid[0]) / (h * image.width) + (image.height / h):
+                    count2 += 1
                     to.counted = True
         trackableObjects[objectID] = to
 
         text = "ID {}".format(objectID)
         draw = ImageDraw.Draw(image)
-        # draw.line(
-        #     [(0, image.height // 2), (image.width, image.height // 2)],
-        #     fill=(234, 59, 240),
-        #     width=10,
-        # )
         draw.ellipse(
             [centroid[0] - 5, centroid[1] -5, centroid[0] + 5, centroid[1] + 5],
             fill=(234, 59, 240)
@@ -207,15 +209,15 @@ def track_objects(image, objects, toLeft, toRight, trackableObjects):
         draw.text((centroid[0] -30, centroid[1] -40), text, fill=(234, 59, 240), font=font)
         del draw
     info = [
-        ("to left", toLeft),
-        ("to right", toRight)
+        ("to left", count1),
+        ("to right", count2)
     ]
     for (i, (k, v)) in enumerate(info):
         textInfo = "{}: {}".format(k, v)
         draw = ImageDraw.Draw(image)
         draw.text((10, image.height - ((40 * i) + 40)), textInfo, fill=(234, 59, 240), font=font)
         del draw
-    return image, toLeft, toRight
+    return image, count1, count2
 
 def detect_video(yolo, video_path, output_path=""):
     if video_path.isdigit():
@@ -256,7 +258,7 @@ def detect_video(yolo, video_path, output_path=""):
             accum_time = accum_time - 1
             fps = "FPS: " + str(curr_fps)
             curr_fps = 0
-        cv2.line(result, (result.shape[1] // 2, 0), (result.shape[1] // 2, result.shape[0]), (234, 59, 240),thickness=5)
+        cv2.line(result, (0, result.shape[0] // h), (result.shape[1], result.shape[0]), (234, 59, 240),thickness=5)
         cv2.putText(result, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                     fontScale=0.50, color=(255, 0, 0), thickness=2)
         cv2.namedWindow("result", cv2.WINDOW_NORMAL)
