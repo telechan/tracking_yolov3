@@ -177,7 +177,6 @@ h = 1 / 4
 def track_objects(image, objects, count1, count2, trackableObjects):
     font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
                 size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
-    # h = 4
 
     for (objectID, centroid) in objects.items():
         to = trackableObjects.get(objectID, None)
@@ -202,7 +201,6 @@ def track_objects(image, objects, count1, count2, trackableObjects):
 
         text = "ID {}".format(objectID)
         draw = ImageDraw.Draw(image)
-        # draw.line(((0, 0), (image.width, image.height)), fill=(255, 255, 0))
         draw.ellipse(
             [centroid[0] - 5, centroid[1] -5, centroid[0] + 5, centroid[1] + 5],
             fill=(234, 59, 240)
@@ -248,7 +246,6 @@ def detect_video(yolo, video_path, output_path=""):
         if type(frame) == type(None): break
         no_use, use = np.split(frame, [140])
         cv2.imshow("use", use)
-        # cv2.imshow("no use", no_use)
         image = Image.fromarray(use)
         image, out_boxes = yolo.detect_image(image)
         objects = ct.update(out_boxes)
@@ -265,7 +262,6 @@ def detect_video(yolo, video_path, output_path=""):
             accum_time = accum_time - 1
             fps = "FPS: " + str(curr_fps)
             curr_fps = 0
-        # cv2.line(result, (0, result.shape[0] // 4), (result.shape[1], result.shape[0]), (234, 59, 240),thickness=5)
         cv2.putText(result, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                     fontScale=0.50, color=(255, 0, 0), thickness=2)
         cv2.namedWindow("result", cv2.WINDOW_NORMAL)
