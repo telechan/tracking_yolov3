@@ -217,7 +217,7 @@ def track_objects(image, objects, count1, count2, trackableObjects):
         draw.text((10, image.height - ((40 * i) + 40)), textInfo, fill=(234, 59, 240), font=font)
     draw.line(((0, 0), (image.width, image.height)), fill=(234, 59, 240), width=3)
     del draw
-    return image, count2
+    return image, count1, count2
 
 def detect_video(yolo, video_path, output_path=""):
     if video_path.isdigit():
@@ -235,23 +235,37 @@ def detect_video(yolo, video_path, output_path=""):
         out = cv2.VideoWriter(output_path, video_FourCC, video_fps, video_size)
     accum_time = 0
     curr_fps = 0
-    ct = CentroidTracker(maxDisappeared=50, maxDistance=70)
+    ct = CentroidTracker(maxDisappeared=30, maxDistance=70)
+    fgbg = cv2.createBackgroundSubtractorKNN()
     trackableObjects = {}
     to_left = 0
     to_right = 0
+    flag = False
     fps = "FPS: ??"
     prev_time = timer()
     while True:
         return_value, frame = vid.read()
         if type(frame) == type(None): break
         no_use, use = np.split(frame, [140])
-        cv2.imshow("use", use)
-        image = Image.fromarray(use)
-        image, out_boxes = yolo.detect_image(image)
-        objects = ct.update(out_boxes)
-        image, to_right = track_objects(image, objects, to_left, to_right, trackableObjects)
-        # result = np.asarray(image)
-        out_image = np.asarray(image)
+        out_image = use
+        image = fgbg.apply(use)
+        thresh = cv2.threshold(image, 3, 255, cv2.THRESH_BINARY)[1]
+        cv2.imshow('thresh', thresh)
+        contours, hierarchy = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        for i, cnt in enumerate(contours):
+            area = cv2.contourArea(cnt)
+            if area > 6000 and area < 100000:
+                flag = True
+                break
+        if flag:
+            image = Image.fromarray(use)
+            image, out_boxes = yolo.detect_image(image)
+            objects = ct.update(out_boxes)
+            image, to_left, to_right = track_objects(image, objects, to_left, to_right, trackableObjects)
+            # result = np.asarray(image)
+            out_image = np.asarray(image)
+            if len(objects) == 0:
+                flag = False
         result = np.concatenate([no_use, out_image])
         curr_time = timer()
         exec_time = curr_time - prev_time
@@ -264,6 +278,7 @@ def detect_video(yolo, video_path, output_path=""):
             curr_fps = 0
         cv2.putText(result, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                     fontScale=0.50, color=(255, 0, 0), thickness=2)
+        print(fps)
         cv2.namedWindow("result", cv2.WINDOW_NORMAL)
         cv2.imshow("result", result)
         if isOutput:
