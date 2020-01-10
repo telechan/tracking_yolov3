@@ -234,7 +234,8 @@ def detect_video(yolo, video_path, output_path=""):
     accum_time = 0
     curr_fps = 0
     ct = CentroidTracker(maxDisappeared=30, maxDistance=70)
-    fgbg = cv2.createBackgroundSubtractorKNN()
+    # fgbg = cv2.createBackgroundSubtractorKNN()
+    fgbg = cv2.bgsegm.createBackgroundSubtractorGSOC()
     trackableObjects = {}
     to_left = 0
     to_right = 0
