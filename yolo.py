@@ -163,7 +163,7 @@ class YOLO(object):
                 for i in range(thickness):
                     draw.rectangle(
                         [left + i, top + i, right - i, bottom - i],
-                        outline=self.colors[c])
+                        outline=(127, 255, 0))
 
         end = timer()
         print(end - start)
@@ -201,9 +201,9 @@ def track_objects(image, objects, count1, count2, trackableObjects):
         draw = ImageDraw.Draw(image)
         draw.ellipse(
             [centroid[0] - 5, centroid[1] -5, centroid[0] + 5, centroid[1] + 5],
-            fill=(234, 59, 240)
+            fill=(127, 255, 0)
         )
-        draw.text((centroid[0] -30, centroid[1] -40), text, fill=(234, 59, 240), font=font)
+        draw.text((centroid[0] -30, centroid[1] -40), text, fill=(127, 255, 0), font=font)
         del draw
     # info = [
     #     ("to left", count1),
