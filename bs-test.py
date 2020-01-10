@@ -75,7 +75,7 @@ def run_KNN(video_path, out_path=""):
         cv2.imshow('area window', result_image2)
 
         if isOutput:
-            out.write(result_img)
+            out.write(result_image2)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     
@@ -84,7 +84,7 @@ def run_KNN(video_path, out_path=""):
 def select_in_out():
     # input_path = input('Input video path:')
     # output_path = input('Output video path:')
-    run_KNN('video/video08.mp4', '')
+    run_KNN('video/video08.mp4', 'video/video08-test2.mp4')
     # finished = True
     # while finished:
     #     input_path = input('Input video path:')
