@@ -205,16 +205,6 @@ def track_objects(image, objects, count1, count2, trackableObjects):
         )
         draw.text((centroid[0] -30, centroid[1] -40), text, fill=(127, 255, 0), font=font)
         del draw
-    # info = [
-    #     ("to left", count1),
-    #     ("to right", count2)
-    # ]
-    # for (i, (k, v)) in enumerate(info):
-    #     textInfo = "{}: {}".format(k, v)
-    #     draw = ImageDraw.Draw(image)
-    #     draw.text((10, image.height - ((40 * i) + 40)), textInfo, fill=(234, 59, 240), font=font)
-    # draw.line(((0, 0), (image.width, image.height)), fill=(234, 59, 240), width=3)
-    # del draw
     return image, count1, count2
 
 def detect_video(yolo, video_path, output_path=""):
@@ -253,7 +243,7 @@ def detect_video(yolo, video_path, output_path=""):
         contours, hierarchy = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         for i, cnt in enumerate(contours):
             area = cv2.contourArea(cnt)
-            if area > 6000 and area < 100000:
+            if area > 2000 and area < 100000:
                 flag = True
                 break
         if flag:
@@ -261,7 +251,6 @@ def detect_video(yolo, video_path, output_path=""):
             image, out_boxes = yolo.detect_image(image)
             objects = ct.update(out_boxes)
             image, to_left, to_right = track_objects(image, objects, to_left, to_right, trackableObjects)
-            # result = np.asarray(image)
             out_image = np.asarray(image)
             if len(objects) == 0:
                 flag = False
@@ -284,8 +273,6 @@ def detect_video(yolo, video_path, output_path=""):
         ]
         for (i, (k, v)) in enumerate(info):
             textInfo = "{}: {}".format(k, v)
-            # draw = ImageDraw.Draw(image)
-            # draw.text((10, image.height - ((40 * i) + 40)), textInfo, fill=(234, 59, 240), font=font)
             cv2.putText(result, text=textInfo, org=(10, result.shape[0] - ((40 * i) + 40)), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.50, color=(127, 255, 0), thickness=1)
         print(fps)
         cv2.namedWindow("result", cv2.WINDOW_NORMAL)
