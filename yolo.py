@@ -223,7 +223,7 @@ def detect_video(yolo, video_path, output_path=""):
         out = cv2.VideoWriter(output_path, video_FourCC, video_fps, video_size)
     accum_time = 0
     curr_fps = 0
-    ct = CentroidTracker(maxDisappeared=30, maxDistance=70)
+    ct = CentroidTracker(maxDisappeared=20, maxDistance=70)
     # fgbg = cv2.createBackgroundSubtractorKNN()
     _, bg = vid.read()
     fgbg = cv2.bgsegm.createBackgroundSubtractorGSOC()
@@ -245,7 +245,7 @@ def detect_video(yolo, video_path, output_path=""):
         contours, hierarchy = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         for i, cnt in enumerate(contours):
             area = cv2.contourArea(cnt)
-            if area > 2000 and area < 100000:
+            if area > 3000 and area < 100000:
                 flag = True
                 break
         if flag:
@@ -281,7 +281,7 @@ def detect_video(yolo, video_path, output_path=""):
         cv2.imshow("result", result)
 
         j += 1
-        if j >50:
+        if j >10:
             _, bg = vid.read()
             j = 0
 
