@@ -225,7 +225,7 @@ def detect_video(yolo, video_path, output_path=""):
         out = cv2.VideoWriter(output_path, video_FourCC, video_fps, video_size)
     accum_time = 0
     curr_fps = 0
-    ct = CentroidTracker(maxDisappeared=20, maxDistance=70)
+    ct = CentroidTracker(maxDisappeared=20, maxDistance=90)
     # fgbg = cv2.createBackgroundSubtractorKNN()
     _, bg = vid.read()
     fgbg = cv2.bgsegm.createBackgroundSubtractorGSOC()
@@ -237,17 +237,19 @@ def detect_video(yolo, video_path, output_path=""):
     prev_time = timer()
     j = 0
     while True:
-        return_value, frame = vid.read()
+        ref, frame = vid.read()
         if type(frame) == type(None): break
         no_use, use = np.split(frame, [140])
         out_image = use
-        image = fgbg.apply(use)
-        thresh = cv2.threshold(image, 3, 255, cv2.THRESH_BINARY)[1]
-        cv2.imshow('thresh', thresh)
-        contours, hierarchy = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        resize_img = cv2.resize(use, (use.shape[1] // 3, use.shape[0] // 3))
+        mask = fgbg.apply(resize_img)
+        # thresh = cv2.threshold(mask, 3, 255, cv2.THRESH_BINARY)[1]
+        cv2.namedWindow('maskwindow', cv2.WINDOW_NORMAL)
+        cv2.imshow('maskwindow', mask)
+        contours, hierarchy = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         for i, cnt in enumerate(contours):
             area = cv2.contourArea(cnt)
-            if area > 3000 and area < 100000:
+            if area > 1000 and area < 33000:
                 flag = True
                 break
         if flag:
