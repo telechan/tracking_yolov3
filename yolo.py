@@ -225,6 +225,7 @@ def detect_video(yolo, video_path, output_path=""):
     curr_fps = 0
     ct = CentroidTracker(maxDisappeared=30, maxDistance=70)
     # fgbg = cv2.createBackgroundSubtractorKNN()
+    _, bg = vid.read()
     fgbg = cv2.bgsegm.createBackgroundSubtractorGSOC()
     trackableObjects = {}
     to_left = 0
@@ -232,6 +233,7 @@ def detect_video(yolo, video_path, output_path=""):
     flag = False
     fps = "FPS: ??"
     prev_time = timer()
+    j = 0
     while True:
         return_value, frame = vid.read()
         if type(frame) == type(None): break
@@ -277,6 +279,12 @@ def detect_video(yolo, video_path, output_path=""):
         print(fps)
         cv2.namedWindow("result", cv2.WINDOW_NORMAL)
         cv2.imshow("result", result)
+
+        j += 1
+        if j >50:
+            _, bg = vid.read()
+            j = 0
+
         if isOutput:
             out.write(result)
         if cv2.waitKey(1) & 0xFF == ord('q'):
