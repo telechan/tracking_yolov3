@@ -163,7 +163,7 @@ class YOLO(object):
                 for i in range(thickness):
                     draw.rectangle(
                         [left + i, top + i, right - i, bottom - i],
-                        outline=self.colors[c])
+                        outline=(127, 255, 0))
 
         end = timer()
         print(end - start)
@@ -171,8 +171,6 @@ class YOLO(object):
 
     def close_session(self):
         self.sess.close()
-
-h = 1 / 4
 
 def track_objects(image, objects, count1, count2, trackableObjects):
     font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
@@ -183,41 +181,33 @@ def track_objects(image, objects, count1, count2, trackableObjects):
         if to is None:
             to = TrackableObject(objectID, centroid)
         else:
-            x = [c[0] for c in to.centroids]
+            # x = [c[0] for c in to.centroids]
             # y = [c[1] for c in to.centroids]
 
-            direction_x = centroid[0] - np.mean(x)
+            # direction_x = centroid[0] - np.mean(x)
             # direction_y = centroid[1] - np.mean(y)
 
             to.centroids.append(centroid)
             if not to.counted:
-                if direction_x > 0 and centroid[1] < (image.height / image.width) * centroid[0]:
-                    count1 += 1
-                    to.counted = True
-                elif direction_x < 0 and centroid[1] > (image.height / image.width) * centroid[0]:
-                    count2 += 1
-                    to.counted = True
+                if centroid[1] < (image.height / image.width) * centroid[0]:
+                    if to.centroids[0][1] > (image.height / image.width) * to.centroids[0][0]:
+                        count1 += 1
+                        to.counted = True
+                elif centroid[1] > (image.height / image.width) * centroid[0]:
+                    if to.centroids[0][1] < (image.height / image.width) * to.centroids[0][0]:
+                        count2 += 1
+                        to.counted = True
         trackableObjects[objectID] = to
 
         text = "ID {}".format(objectID)
         draw = ImageDraw.Draw(image)
         draw.ellipse(
             [centroid[0] - 5, centroid[1] -5, centroid[0] + 5, centroid[1] + 5],
-            fill=(234, 59, 240)
+            fill=(127, 255, 0)
         )
-        draw.text((centroid[0] -30, centroid[1] -40), text, fill=(234, 59, 240), font=font)
+        draw.text((centroid[0] -30, centroid[1] -40), text, fill=(127, 255, 0), font=font)
         del draw
-    info = [
-        ("to left", count1),
-        ("to right", count2)
-    ]
-    for (i, (k, v)) in enumerate(info):
-        textInfo = "{}: {}".format(k, v)
-        draw = ImageDraw.Draw(image)
-        draw.text((10, image.height - ((40 * i) + 40)), textInfo, fill=(234, 59, 240), font=font)
-    draw.line(((0, 0), (image.width, image.height)), fill=(234, 59, 240), width=3)
-    del draw
-    return image, count2
+    return image, count1, count2
 
 def detect_video(yolo, video_path, output_path=""):
     if video_path.isdigit():
@@ -235,23 +225,40 @@ def detect_video(yolo, video_path, output_path=""):
         out = cv2.VideoWriter(output_path, video_FourCC, video_fps, video_size)
     accum_time = 0
     curr_fps = 0
-    ct = CentroidTracker(maxDisappeared=50, maxDistance=70)
+    ct = CentroidTracker(maxDisappeared=20, maxDistance=70)
+    # fgbg = cv2.createBackgroundSubtractorKNN()
+    _, bg = vid.read()
+    fgbg = cv2.bgsegm.createBackgroundSubtractorGSOC()
     trackableObjects = {}
     to_left = 0
     to_right = 0
+    flag = False
     fps = "FPS: ??"
     prev_time = timer()
+    j = 0
     while True:
         return_value, frame = vid.read()
         if type(frame) == type(None): break
         no_use, use = np.split(frame, [140])
-        cv2.imshow("use", use)
-        image = Image.fromarray(use)
-        image, out_boxes = yolo.detect_image(image)
-        objects = ct.update(out_boxes)
-        image, to_right = track_objects(image, objects, to_left, to_right, trackableObjects)
-        # result = np.asarray(image)
-        out_image = np.asarray(image)
+        out_image = use
+        image = fgbg.apply(use)
+        thresh = cv2.threshold(image, 3, 255, cv2.THRESH_BINARY)[1]
+        cv2.imshow('thresh', thresh)
+        contours, hierarchy = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        for i, cnt in enumerate(contours):
+            area = cv2.contourArea(cnt)
+            if area > 3000 and area < 100000:
+                flag = True
+                break
+        if flag:
+            image = Image.fromarray(use)
+            image, out_boxes = yolo.detect_image(image)
+            objects = ct.update(out_boxes)
+            image, to_left, to_right = track_objects(image, objects, to_left, to_right, trackableObjects)
+            out_image = np.asarray(image)
+            if len(objects) == 0:
+                flag = False
+        cv2.line(out_image, (0, 0), (out_image.shape[1], out_image.shape[0]), color=(127, 255, 0), thickness=3)
         result = np.concatenate([no_use, out_image])
         curr_time = timer()
         exec_time = curr_time - prev_time
@@ -263,9 +270,23 @@ def detect_video(yolo, video_path, output_path=""):
             fps = "FPS: " + str(curr_fps)
             curr_fps = 0
         cv2.putText(result, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                    fontScale=0.50, color=(255, 0, 0), thickness=2)
+                    fontScale=0.50, color=(127, 255, 0), thickness=2)
+        info = [
+            ("to left", to_left),
+            ("to right", to_right)
+        ]
+        for (i, (k, v)) in enumerate(info):
+            textInfo = "{}: {}".format(k, v)
+            cv2.putText(result, text=textInfo, org=(10, result.shape[0] - ((40 * i) + 40)), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.50, color=(127, 255, 0), thickness=1)
+        print(fps)
         cv2.namedWindow("result", cv2.WINDOW_NORMAL)
         cv2.imshow("result", result)
+
+        j += 1
+        if j >10:
+            _, bg = vid.read()
+            j = 0
+
         if isOutput:
             out.write(result)
         if cv2.waitKey(1) & 0xFF == ord('q'):
