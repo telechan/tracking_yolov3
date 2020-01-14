@@ -181,20 +181,22 @@ def track_objects(image, objects, count1, count2, trackableObjects):
         if to is None:
             to = TrackableObject(objectID, centroid)
         else:
-            x = [c[0] for c in to.centroids]
+            # x = [c[0] for c in to.centroids]
             # y = [c[1] for c in to.centroids]
 
-            direction_x = centroid[0] - np.mean(x)
+            # direction_x = centroid[0] - np.mean(x)
             # direction_y = centroid[1] - np.mean(y)
 
             to.centroids.append(centroid)
             if not to.counted:
-                if direction_x > 0 and centroid[1] < (image.height / image.width) * centroid[0]:
-                    count1 += 1
-                    to.counted = True
-                elif direction_x < 0 and centroid[1] > (image.height / image.width) * centroid[0]:
-                    count2 += 1
-                    to.counted = True
+                if centroid[1] < (image.height / image.width) * centroid[0]:
+                    if to.centroids[0][1] > (image.height / image.width) * to.centroids[0][0]:
+                        count1 += 1
+                        to.counted = True
+                elif centroid[1] > (image.height / image.width) * centroid[0]:
+                    if to.centroids[0][1] < (image.height / image.width) * to.centroids[0][0]:
+                        count2 += 1
+                        to.counted = True
         trackableObjects[objectID] = to
 
         text = "ID {}".format(objectID)
