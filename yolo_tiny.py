@@ -227,7 +227,7 @@ def detect_video(yolo, video_path, output_path=""):
     curr_fps = 0
     ct = CentroidTracker(maxDisappeared=20, maxDistance=90)
     # fgbg = cv2.createBackgroundSubtractorKNN()
-    _, bg = vid.read()
+    ref, bg = vid.read()
     fgbg = cv2.bgsegm.createBackgroundSubtractorGSOC()
     trackableObjects = {}
     to_left = 0
@@ -247,11 +247,12 @@ def detect_video(yolo, video_path, output_path=""):
         cv2.namedWindow('maskwindow', cv2.WINDOW_NORMAL)
         cv2.imshow('maskwindow', mask)
         contours, hierarchy = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        for i, cnt in enumerate(contours):
-            area = cv2.contourArea(cnt)
-            if area > 1000 and area < 33000:
-                flag = True
-                break
+        if not flag:
+            for i, cnt in enumerate(contours):
+                area = cv2.contourArea(cnt)
+                if area > 600 and area < 10000:
+                    flag = True
+                    break
         if flag:
             image = Image.fromarray(use)
             image, out_boxes = yolo.detect_image(image)
@@ -286,7 +287,7 @@ def detect_video(yolo, video_path, output_path=""):
 
         j += 1
         if j >10:
-            _, bg = vid.read()
+            bg = frame
             j = 0
 
         if isOutput:
