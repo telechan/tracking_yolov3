@@ -232,7 +232,7 @@ def detect_video(yolo, video_path, output_path=""):
     trackableObjects = {}
     to_left = 0
     to_right = 0
-    flag = False
+    flag = True
     fps = "FPS: ??"
     prev_time = timer()
     j = 0
@@ -250,7 +250,7 @@ def detect_video(yolo, video_path, output_path=""):
             contours, hierarchy = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             for i, cnt in enumerate(contours):
                 area = cv2.contourArea(cnt)
-                if area > 1500 and area < 5000:
+                if area > 600 and area < 10000:
                     flag = True
                     break
         if flag:
