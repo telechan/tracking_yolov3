@@ -245,7 +245,7 @@ def detect_video(yolo, video_path, output_path=""):
         mask = fgbg.apply(resize_img)
         # thresh = cv2.threshold(mask, 3, 255, cv2.THRESH_BINARY)[1]
         cv2.namedWindow('maskwindow', cv2.WINDOW_NORMAL)
-        cv2.imshow('maskwindow', mask)
+        # cv2.imshow('maskwindow', mask)
         if not flag:
             contours, hierarchy = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             for i, cnt in enumerate(contours):
