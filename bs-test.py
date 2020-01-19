@@ -28,14 +28,14 @@ def run_KNN(video_path, out_path=""):
 
         # no_use, use = np.split(frame, [140])
 
-        image = cv2.resize(frame.copy(), (frame.shape[1] // 2, frame.shape[0] // 2))
-        # image = cv2.resize(frame.copy(), (frame.shape[1] // 3, frame.shape[0] // 3))
+        # image = cv2.resize(frame.copy(), (frame.shape[1] // 2, frame.shape[0] // 2))
+        image = cv2.resize(frame.copy(), (frame.shape[1] // 3, frame.shape[0] // 3))
         # image = cv2.resize(frame.copy(), (frame.shape[1] // 4, frame.shape[0] // 4))
 
-        cv2.namedWindow('bs window', cv2.WINDOW_NORMAL)
+        # cv2.namedWindow('bs window', cv2.WINDOW_NORMAL)
         # cv2.namedWindow('area window', cv2.WINDOW_NORMAL)
 
-        mask = fgbg.apply(image)
+        # mask = fgbg.apply(image)
         # cv2.imshow('result mask', mask)
 
         mask1 = fgbg2.apply(image)
@@ -53,7 +53,9 @@ def run_KNN(video_path, out_path=""):
         # img_KNN = cv2.hconcat([mask1, mask2])
         # img_GSOC = cv2.hconcat([mask3, mask4])
 
-        # contours1, hierarchy1 = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        re_mask = mask1[0 : mask1.shape[0] // 2, mask1.shape[1] // 2 : mask1.shape[0]]
+
+        # contours1, hierarchy1 = cv2.findContours(mask1.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         # for i, cnt in enumerate(contours1):
         #     area = cv2.contourArea(cnt)
         #     if hierarchy1[0][i][3] == -1 and area > 1000:
@@ -88,12 +90,13 @@ def run_KNN(video_path, out_path=""):
         #         result_img3 = cv2.drawContours(frame.copy(), [cnt], 0, (255, 0, 0), 2)
         #         cv2.imshow('area window', result_img3)
 
-        image1 = cv2.hconcat([mask, mask1])
+        # image1 = cv2.hconcat([mask1, re_mask])
         # image2 = cv2.hconcat([result_img3, frame])
 
         # result_image = cv2.vconcat([img_KNN, img_GSOC])
         # result_image2 = cv2.vconcat([image1, image2])
-        cv2.imshow('bs window', image1)
+        cv2.imshow('bs window', mask1)
+        cv2.imshow('re mask', re_mask)
         # cv2.imshow('area window', result_image2)
 
         if isOutput:
@@ -106,7 +109,7 @@ def run_KNN(video_path, out_path=""):
 def select_in_out():
     # input_path = input('Input video path:')
     # output_path = input('Output video path:')
-    run_KNN('video/video08.mp4', 'video/video08-test5.mp4')
+    run_KNN('video/video08.mp4', '')
     # finished = True
     # while finished:
     #     input_path = input('Input video path:')

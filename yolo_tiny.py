@@ -116,7 +116,7 @@ class YOLO(object):
             boxed_image = letterbox_image(image, new_image_size)
         image_data = np.array(boxed_image, dtype='float32')
 
-        print(image_data.shape)
+        # print(image_data.shape)
         image_data /= 255.
         image_data = np.expand_dims(image_data, 0)  # Add batch dimension.
 
@@ -137,8 +137,8 @@ class YOLO(object):
                 out_scores2.append(out_scores[i])
                 out_classes2.append(out_classes[i])
 
-        font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
-                size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
+        # font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
+        #         size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
         thickness = (image.size[0] + image.size[1]) // 300
 
         if len(out_classes2) != 0:
@@ -167,7 +167,8 @@ class YOLO(object):
 
         end = timer()
         print(end - start)
-        return image, out_boxes2
+        print('--------------------')
+        return image, out_boxes2, out_scores2
 
     def close_session(self):
         self.sess.close()
@@ -197,6 +198,7 @@ def track_objects(image, objects, count1, count2, trackableObjects):
                     if to.centroids[0][1] < (image.height / image.width) * to.centroids[0][0]:
                         count2 += 1
                         to.counted = True
+
         trackableObjects[objectID] = to
 
         text = "ID {}".format(objectID)
@@ -205,9 +207,30 @@ def track_objects(image, objects, count1, count2, trackableObjects):
             [centroid[0] - 5, centroid[1] -5, centroid[0] + 5, centroid[1] + 5],
             fill=(127, 255, 0)
         )
-        draw.text((centroid[0] -30, centroid[1] -40), text, fill=(127, 255, 0), font=font)
+        draw.text((centroid[0] -10, centroid[1] -25), text, fill=(127, 255, 0), font=font)
         del draw
     return image, count1, count2
+
+def max_min_area(mask, boxes, scores, max_area, min_area):
+    for (i, (top, left, bottom, right)) in enumerate(boxes):
+        if scores[i] >= 0.20:
+            top = max(0, np.floor(top / 3 + 0.5).astype('int32'))
+            left = max(0, np.floor(left / 3 + 0.5).astype('int32'))
+            bottom = min(mask.shape[0], np.floor(bottom / 3 + 0.5).astype('int32'))
+            right = min(mask.shape[1], np.floor(right / 3 + 0.5).astype('int32'))
+            mask1 = mask[top : bottom, left : right]
+
+            max_lim = mask1.shape[1] * mask1.shape[0]
+            min_lim = (mask1.shape[1] * mask1.shape[0]) / 4
+
+            contours, hierarchy = cv2.findContours(mask1.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            for _, cnt in enumerate(contours):
+                area = cv2.contourArea(cnt)
+                if max_area < area and max_lim > area:
+                    max_area = area
+                if min_area > area and min_lim < area:
+                    min_area = area
+    return max_area, min_area
 
 def detect_video(yolo, video_path, output_path=""):
     if video_path.isdigit():
@@ -216,53 +239,67 @@ def detect_video(yolo, video_path, output_path=""):
     if not vid.isOpened():
         raise IOError("Couldn't open webcam or video")
     video_FourCC = cv2.VideoWriter_fourcc(*"mp4v")
-    video_fps       = vid.get(cv2.CAP_PROP_FPS)
-    video_size      = (int(vid.get(cv2.CAP_PROP_FRAME_WIDTH)),
-                        int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    video_fps = vid.get(cv2.CAP_PROP_FPS)
+    video_size = (int(vid.get(cv2.CAP_PROP_FRAME_WIDTH)), int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    # print("input video size: {}".format(video_size))
+
     isOutput = True if output_path != "" else False
     if isOutput:
-        print("!!! TYPE:", type(output_path), type(video_FourCC), type(video_fps), type(video_size))
+        # print("!!! TYPE:", type(output_path), type(video_FourCC), type(video_fps), type(video_size))
         out = cv2.VideoWriter(output_path, video_FourCC, video_fps, video_size)
-    accum_time = 0
-    curr_fps = 0
-    ct = CentroidTracker(maxDisappeared=20, maxDistance=90)
+
     # fgbg = cv2.createBackgroundSubtractorKNN()
-    ref, bg = vid.read()
     fgbg = cv2.bgsegm.createBackgroundSubtractorGSOC()
+    ct = CentroidTracker(maxDisappeared=20, maxDistance=90)
     trackableObjects = {}
     to_left = 0
     to_right = 0
-    flag = True
+    flag = False
+    max_area = 0
+    min_area = video_size[0] * video_size[1]
+    area_time = 0
+    accum_time = 0
+    curr_fps = 0
+    max_fps = 0
     fps = "FPS: ??"
+
     prev_time = timer()
-    j = 0
     while True:
-        ref, frame = vid.read()
+        _, frame = vid.read()
         if type(frame) == type(None): break
         no_use, use = np.split(frame, [140])
-        out_image = use
+
         resize_img = cv2.resize(use, (use.shape[1] // 3, use.shape[0] // 3))
         mask = fgbg.apply(resize_img)
         # thresh = cv2.threshold(mask, 3, 255, cv2.THRESH_BINARY)[1]
-        cv2.namedWindow('maskwindow', cv2.WINDOW_NORMAL)
-        cv2.imshow('maskwindow', mask)
+        # cv2.namedWindow('maskwindow', cv2.WINDOW_NORMAL)
+        # cv2.imshow('maskwindow', mask)
+
         contours, hierarchy = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if not flag:
-            for i, cnt in enumerate(contours):
-                area = cv2.contourArea(cnt)
-                if area > 600 and area < 10000:
-                    flag = True
-                    break
         if flag:
+            out_image = use
+            for _, cnt in enumerate(contours):
+                area = cv2.contourArea(cnt)
+                if area > min_area and area < (max_area / 2):
+                    flag = False
+                    break
+        else:
             image = Image.fromarray(use)
-            image, out_boxes = yolo.detect_image(image)
+            image, out_boxes, out_scores = yolo.detect_image(image)
             objects = ct.update(out_boxes)
             image, to_left, to_right = track_objects(image, objects, to_left, to_right, trackableObjects)
             out_image = np.asarray(image)
-            if len(objects) == 0:
-                flag = False
+            
+            if len(objects) != 0 and area_time < 150:
+                max_area, min_area = max_min_area(mask, out_boxes, out_scores, max_area, min_area)
+                area_time += 1
+            elif len(objects) == 0 and area_time >= 150:
+                flag = True
+
         cv2.line(out_image, (0, 0), (out_image.shape[1], out_image.shape[0]), color=(127, 255, 0), thickness=3)
+
         result = np.concatenate([no_use, out_image])
+
         curr_time = timer()
         exec_time = curr_time - prev_time
         prev_time = curr_time
@@ -271,27 +308,30 @@ def detect_video(yolo, video_path, output_path=""):
         if accum_time > 1:
             accum_time = accum_time - 1
             fps = "FPS: " + str(curr_fps)
+            if max_fps < curr_fps:
+                max_fps = curr_fps
             curr_fps = 0
         cv2.putText(result, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                     fontScale=0.50, color=(127, 255, 0), thickness=2)
+
         info = [
             ("to left", to_left),
-            ("to right", to_right)
+            ("to right", to_right),
+            ("max area", max_area // 3),
+            ("min area", min_area)
         ]
         for (i, (k, v)) in enumerate(info):
             textInfo = "{}: {}".format(k, v)
-            cv2.putText(result, text=textInfo, org=(10, result.shape[0] - ((40 * i) + 40)), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.50, color=(127, 255, 0), thickness=1)
-        print(fps)
+            cv2.putText(result, text=textInfo, org=(10, result.shape[0] - ((30 * i) + 20)), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.7, color=(127, 255, 0), thickness=1)
+
         cv2.namedWindow("result", cv2.WINDOW_NORMAL)
         cv2.imshow("result", result)
-
-        j += 1
-        if j >10:
-            bg = frame
-            j = 0
 
         if isOutput:
             out.write(result)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
+
+    print("Max area: {}, Min area: {}".format(max_area, min_area))
+    print("Max FPS: {}FPS".format(max_fps))
     yolo.close_session()
