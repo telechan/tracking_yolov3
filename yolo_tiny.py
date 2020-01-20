@@ -156,6 +156,7 @@ class YOLO(object):
                 left = max(0, np.floor(left + 0.5).astype('int32'))
                 bottom = min(image.size[1], np.floor(bottom + 0.5).astype('int32'))
                 right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
+                out_boxes2[i] = [top, left, bottom, right]
                 
                 print(label, (left, top), (right, bottom))
 
