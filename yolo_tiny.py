@@ -189,7 +189,7 @@ def track_objects(image, objects, count1, count2, trackableObjects):
             # direction_x = centroid[0] - np.mean(x)
             # direction_y = centroid[1] - np.mean(y)
 
-            to.centroids.append(centroid)
+            # to.centroids.append(centroid)
             if not to.counted:
                 if centroid[1] < (image.height / image.width) * centroid[0]:
                     if to.centroids[0][1] > (image.height / image.width) * to.centroids[0][0]:
@@ -215,10 +215,10 @@ def track_objects(image, objects, count1, count2, trackableObjects):
 def max_min_area(mask, boxes, scores, max_area, min_area):
     for (i, (top, left, bottom, right)) in enumerate(boxes):
         if scores[i] >= 0.20:
-            top = max(0, np.floor(top / 3 + 0.5).astype('int32'))
-            left = max(0, np.floor(left / 3 + 0.5).astype('int32'))
-            bottom = min(mask.shape[0], np.floor(bottom / 3 + 0.5).astype('int32'))
-            right = min(mask.shape[1], np.floor(right / 3 + 0.5).astype('int32'))
+            top = top // 3
+            left = left // 3
+            bottom = bottom // 3
+            right = right // 3
             mask1 = mask[top : bottom, left : right]
 
             max_lim = mask1.shape[1] * mask1.shape[0]
@@ -253,6 +253,7 @@ def detect_video(yolo, video_path, output_path=""):
     fgbg = cv2.bgsegm.createBackgroundSubtractorGSOC()
     ct = CentroidTracker(maxDisappeared=20, maxDistance=90)
     trackableObjects = {}
+    del_ID = 0
     to_left = 0
     to_right = 0
     flag = False
@@ -290,10 +291,16 @@ def detect_video(yolo, video_path, output_path=""):
             objects = ct.update(out_boxes)
             image, to_left, to_right = track_objects(image, objects, to_left, to_right, trackableObjects)
             out_image = np.asarray(image)
-            
-            if len(objects) != 0 and area_time < 150:
-                max_area, min_area = max_min_area(mask, out_boxes, out_scores, max_area, min_area)
-                area_time += 1
+
+            if len(objects) != 0:
+                objects_ID = list(objects.keys())
+                trackable_ID = list(trackableObjects.keys())
+                non_IDs = list(set(trackable_ID) - set(objects_ID))
+                for non_ID in non_IDs:
+                    del trackableObjects[non_ID]
+                if area_time < 150:
+                    max_area, min_area = max_min_area(mask, out_boxes, out_scores, max_area, min_area)
+                    area_time += 1
             elif len(objects) == 0 and area_time >= 150:
                 flag = True
 
