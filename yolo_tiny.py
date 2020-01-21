@@ -174,7 +174,45 @@ class YOLO(object):
     def close_session(self):
         self.sess.close()
 
-def track_objects(image, objects, count1, count2, trackableObjects):
+def get_color(image, objects):
+    color_list = {}
+    for (object_ID, centroid) in objects.items():
+        img = image[int(centroid[1]) : int(centroid[1]) + 20, int(centroid[0]) : int(centroid[0]) + 20]
+        r = np.floor(img.T[2].flatten().mean()).astype('int32')
+        g = np.floor(img.T[1].flatten().mean()).astype('int32')
+        b = np.floor(img.T[0].flatten().mean()).astype('int32')
+        print((r, g, b))
+        hsv = cv2.cvtColor(np.array([[[b, g, r]]], dtype=np.uint8), cv2.COLOR_BGR2HSV)[0][0]
+        print(hsv)
+
+        if hsv[1] > 100:
+            if hsv[2] > 127:
+                if hsv[0] < 15 or hsv[0] >= 160:
+                    color_list[object_ID] = 'red'
+                elif hsv[0] < 40:
+                    color_list[object_ID] = 'orange, yellow'
+                elif hsv[0] < 80:
+                    color_list[object_ID] = 'green'
+                elif hsv[0] < 130:
+                    color_list[object_ID] = 'blue'
+                elif hsv[0] < 160:
+                    color_list[object_ID] = 'purple, pink'
+                else:
+                    color_list[object_ID] = '??'
+            else:
+                color_list[object_ID] = '??'
+        else:
+            if hsv[2] > 190:
+                color_list[object_ID] = 'white'
+            elif hsv[2] > 80:
+                color_list[object_ID] = 'gray'
+            elif hsv[2] <= 80:
+                color_list[object_ID] = 'black'
+            else:
+                color_list[object_ID] = '??'
+    return color_list        
+
+def track_objects(image, objects, count1, count2, trackableObjects, color_list):
     font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
                 size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
 
@@ -202,7 +240,8 @@ def track_objects(image, objects, count1, count2, trackableObjects):
 
         trackableObjects[objectID] = to
 
-        text = "ID {}".format(objectID)
+        text = "ID {}  {}".format(objectID, color_list[objectID])
+        print(text)
         draw = ImageDraw.Draw(image)
         draw.ellipse(
             [centroid[0] - 5, centroid[1] -5, centroid[0] + 5, centroid[1] + 5],
@@ -289,7 +328,8 @@ def detect_video(yolo, video_path, output_path=""):
             image = Image.fromarray(use)
             image, out_boxes, out_scores = yolo.detect_image(image)
             objects = ct.update(out_boxes)
-            image, to_left, to_right = track_objects(image, objects, to_left, to_right, trackableObjects)
+            color_list = get_color(use, objects)
+            image, to_left, to_right = track_objects(image, objects, to_left, to_right, trackableObjects, color_list)
             out_image = np.asarray(image)
 
             if len(objects) != 0:
