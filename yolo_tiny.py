@@ -158,7 +158,7 @@ class YOLO(object):
                 right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
                 out_boxes2[i] = [top, left, bottom, right]
                 
-                print(label, (left, top), (right, bottom))
+                # print(label, (left, top), (right, bottom))
 
                 # My kingdom for a good redistributable image drawing library.
                 for i in range(thickness):
@@ -167,7 +167,7 @@ class YOLO(object):
                         outline=(127, 255, 0))
 
         end = timer()
-        print(end - start)
+        # print(end - start)
         print('--------------------')
         return image, out_boxes2, out_scores2
 
@@ -181,35 +181,34 @@ def get_color(image, objects):
         r = np.floor(img.T[2].flatten().mean()).astype('int32')
         g = np.floor(img.T[1].flatten().mean()).astype('int32')
         b = np.floor(img.T[0].flatten().mean()).astype('int32')
-        print((r, g, b))
+        # print((r, g, b))
         hsv = cv2.cvtColor(np.array([[[b, g, r]]], dtype=np.uint8), cv2.COLOR_BGR2HSV)[0][0]
-        print(hsv)
 
-        if hsv[1] > 100:
-            if hsv[2] > 127:
+        if hsv[1] > 50:
+            if hsv[2] > 60:
                 if hsv[0] < 15 or hsv[0] >= 160:
-                    color_list[object_ID] = 'red'
+                    color_list[object_ID] = ('red', hsv)
                 elif hsv[0] < 40:
-                    color_list[object_ID] = 'orange, yellow'
+                    color_list[object_ID] = ('orange, yellow', hsv)
                 elif hsv[0] < 80:
-                    color_list[object_ID] = 'green'
+                    color_list[object_ID] = ('green', hsv)
                 elif hsv[0] < 130:
-                    color_list[object_ID] = 'blue'
+                    color_list[object_ID] = ('blue', hsv)
                 elif hsv[0] < 160:
-                    color_list[object_ID] = 'purple, pink'
+                    color_list[object_ID] = ('purple, pink', hsv)
                 else:
-                    color_list[object_ID] = '??'
+                    color_list[object_ID] = ('??', hsv)
             else:
-                color_list[object_ID] = '??'
+                color_list[object_ID] = ('??', hsv)
         else:
-            if hsv[2] > 190:
-                color_list[object_ID] = 'white'
-            elif hsv[2] > 80:
-                color_list[object_ID] = 'gray'
-            elif hsv[2] <= 80:
-                color_list[object_ID] = 'black'
+            if hsv[2] > 180:
+                color_list[object_ID] = ('white', hsv)
+            elif hsv[2] > 120:
+                color_list[object_ID] = ('gray', hsv)
+            elif hsv[2] <= 120:
+                color_list[object_ID] = ('black', hsv)
             else:
-                color_list[object_ID] = '??'
+                color_list[object_ID] = ('??', hsv)
     return color_list        
 
 def track_objects(image, objects, count1, count2, trackableObjects, color_list):
@@ -240,8 +239,9 @@ def track_objects(image, objects, count1, count2, trackableObjects, color_list):
 
         trackableObjects[objectID] = to
 
-        text = "ID {}  {}".format(objectID, color_list[objectID])
-        print(text)
+        text = "ID {} {}".format(objectID, color_list[objectID][0])
+        text2 = " {}".format(color_list[objectID][1])
+        print(text + text2)
         draw = ImageDraw.Draw(image)
         draw.ellipse(
             [centroid[0] - 5, centroid[1] -5, centroid[0] + 5, centroid[1] + 5],
