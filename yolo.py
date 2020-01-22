@@ -348,7 +348,6 @@ def detect_video(yolo, video_path, output_path=""):
     while True:
         _, frame = vid.read()
         if type(frame) == type(None): break
-        # no_use, use = np.split(frame, [140])
 
         resize_img = cv2.resize(frame, (frame.shape[1] // 3, frame.shape[0] // 3))
         mask = fgbg.apply(resize_img)
@@ -391,9 +390,6 @@ def detect_video(yolo, video_path, output_path=""):
 
         cv2.line(out_image, (0, count_line(out_image.shape[1], out_image.shape[0], 0)), (out_image.shape[1], count_line(out_image.shape[1], out_image.shape[0], out_image.shape[1])), color=(127, 255, 0), thickness=3)
 
-        # result = np.concatenate([no_use, out_image])
-        result = out_image
-
         curr_time = timer()
         exec_time = curr_time - prev_time
         prev_time = curr_time
@@ -406,7 +402,7 @@ def detect_video(yolo, video_path, output_path=""):
                 max_fps = curr_fps
             curr_fps = 0
         print(fps)
-        cv2.putText(result, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+        cv2.putText(out_image, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                     fontScale=0.50, color=(127, 255, 0), thickness=2)
 
         info = [
@@ -417,15 +413,15 @@ def detect_video(yolo, video_path, output_path=""):
         ]
         for (i, (k, v)) in enumerate(info):
             textInfo = "{}: {}".format(k, v)
-            cv2.putText(result, text=textInfo, org=(10, result.shape[0] - ((30 * i) + 20)), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.7, color=(127, 255, 0), thickness=1)
+            cv2.putText(out_image, text=textInfo, org=(10, out_image.shape[0] - ((30 * i) + 20)), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.7, color=(127, 255, 0), thickness=1)
 
         cv2.namedWindow("result", cv2.WINDOW_NORMAL)
-        cv2.imshow("result", result)
+        cv2.imshow("result", out_image)
         cv2.namedWindow('maskwindow', cv2.WINDOW_NORMAL)
         cv2.imshow('maskwindow', mask1)
 
         if isOutput:
-            out.write(result)
+            out.write(out_image)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
