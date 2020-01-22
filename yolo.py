@@ -381,7 +381,7 @@ def detect_video(yolo, video_path, output_path=""):
             elif len(objects) == 0 and area_time >= 120:
                 flag = True
 
-        cv2.line(out_image, (0, out_image.shape[0] // 3.4), (out_image.shape[1], out_image.shape[0]), color=(127, 255, 0), thickness=3)
+        cv2.line(out_image, (0, int(out_image.shape[0] / 3.4)), (out_image.shape[1], out_image.shape[0]), color=(127, 255, 0), thickness=3)
 
         # result = np.concatenate([no_use, out_image])
         result = out_image
