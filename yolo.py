@@ -228,12 +228,12 @@ def track_objects(image, objects, count1, count2, trackableObjects, color_list):
 
             # to.centroids.append(centroid)
             if not to.counted:
-                if centroid[1] < (140 / image.width) * centroid[0]:
-                    if to.centroids[0][1] > (140 / image.width) * to.centroids[0][0]:
+                if centroid[1] < int(((image.size[1] / 3.4) / image.size[0]) * centroid[0]):
+                    if to.centroids[0][1] > int(((image.size[1] / 3.4) / image.size[0]) * to.centroids[0][0]):
                         count1 += 1
                         to.counted = True
-                elif centroid[1] > (140 / image.width) * centroid[0]:
-                    if to.centroids[0][1] < (140 / image.width) * to.centroids[0][0]:
+                elif centroid[1] > int(((image.size[1] / 3.4) / image.size[0]) * centroid[0]):
+                    if to.centroids[0][1] < int(((image.size[1] / 3.4) / image.size[0]) * to.centroids[0][0]):
                         count2 += 1
                         to.counted = True
 
@@ -261,7 +261,7 @@ def max_min_area(mask, boxes, scores, max_area, min_area):
             mask1 = mask[top : bottom, left : right]
 
             max_lim = mask1.shape[1] * mask1.shape[0]
-            min_lim = (mask1.shape[1] * mask1.shape[0]) * 0.5
+            min_lim = (mask.shape[1] * mask.shape[0]) * 0.1
 
             contours, hierarchy = cv2.findContours(mask1.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             for _, cnt in enumerate(contours):
@@ -284,7 +284,7 @@ def get_area(mask, boxes, scores):
             mask1 = mask[top : bottom, left : right]
 
             max_lim = mask1.shape[1] * mask1.shape[0]
-            min_lim = (mask1.shape[1] * mask1.shape[0]) * 0.5
+            min_lim = (mask.shape[1] * mask.shape[0]) * 0.1
 
             contours, hierarchy = cv2.findContours(mask1.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             if len(contours) == 0:
@@ -381,7 +381,7 @@ def detect_video(yolo, video_path, output_path=""):
             elif len(objects) == 0 and area_time >= 120:
                 flag = True
 
-        cv2.line(out_image, (0, 140), (out_image.shape[1], out_image.shape[0]), color=(127, 255, 0), thickness=3)
+        cv2.line(out_image, (0, out_image.shape[0] // 3.4), (out_image.shape[1], out_image.shape[0]), color=(127, 255, 0), thickness=3)
 
         # result = np.concatenate([no_use, out_image])
         result = out_image
