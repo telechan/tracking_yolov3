@@ -272,6 +272,16 @@ def max_min_area(mask, boxes, scores, max_area, min_area):
                     min_area = area
     return max_area, min_area
 
+# def get_area(mask, boxes):
+#     for (i, box) in enumerate(boxes):
+#         if scores[i] >= 0.20:
+#             top = box[0] // 3
+#             left = box[1] // 3
+#             bottom = box[2] // 3
+#             right = box[3] // 3
+#             mask1 = mask[top : bottom, left : right]
+#             contours, hierarchy = cv2.findContours(mask1.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
 def detect_video(yolo, video_path, output_path=""):
     if video_path.isdigit():
         video_path = int(video_path)
@@ -308,27 +318,31 @@ def detect_video(yolo, video_path, output_path=""):
     while True:
         _, frame = vid.read()
         if type(frame) == type(None): break
-        no_use, use = np.split(frame, [140])
+        # no_use, use = np.split(frame, [140])
 
-        resize_img = cv2.resize(use, (use.shape[1] // 3, use.shape[0] // 3))
+        resize_img = cv2.resize(frame, (frame.shape[1] // 3, frame.shape[0] // 3))
         mask = fgbg.apply(resize_img)
+        mask1 = mask
         # thresh = cv2.threshold(mask, 3, 255, cv2.THRESH_BINARY)[1]
         # cv2.namedWindow('maskwindow', cv2.WINDOW_NORMAL)
         # cv2.imshow('maskwindow', mask)
 
-        contours, hierarchy = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if flag:
-            out_image = use
+            out_image = frame
+            contours, hierarchy = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             for _, cnt in enumerate(contours):
                 area = cv2.contourArea(cnt)
                 if area > min_area and area < (max_area / 2):
                     flag = False
                     break
         else:
-            image = Image.fromarray(use)
+            image = Image.fromarray(frame)
             image, out_boxes, out_scores = yolo.detect_image(image)
+            if len(out_boxes) != 0:
+                for i, box in enumerate(out_boxes):
+                    cv2.rectangle(mask1, (box[1] // 3, box[0] // 3), (box[3] // 3, box[2] // 3), (127, 255, 0), thickness=2)
             objects = ct.update(out_boxes)
-            color_list = get_color(use, objects)
+            color_list = get_color(frame, objects)
             image, to_left, to_right = track_objects(image, objects, to_left, to_right, trackableObjects, color_list)
             out_image = np.asarray(image)
 
@@ -346,7 +360,8 @@ def detect_video(yolo, video_path, output_path=""):
 
         cv2.line(out_image, (0, 0), (out_image.shape[1], out_image.shape[0]), color=(127, 255, 0), thickness=3)
 
-        result = np.concatenate([no_use, out_image])
+        # result = np.concatenate([no_use, out_image])
+        result = out_image
 
         curr_time = timer()
         exec_time = curr_time - prev_time
@@ -373,7 +388,7 @@ def detect_video(yolo, video_path, output_path=""):
             cv2.putText(result, text=textInfo, org=(10, result.shape[0] - ((30 * i) + 20)), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.7, color=(127, 255, 0), thickness=1)
 
         cv2.namedWindow("result", cv2.WINDOW_NORMAL)
-        cv2.imshow("result", result)
+        cv2.imshow("result", mask1)
 
         if isOutput:
             out.write(result)
