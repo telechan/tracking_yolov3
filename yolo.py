@@ -158,23 +158,64 @@ class YOLO(object):
                 right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
                 out_boxes2[i] = [top, left, bottom, right]
                 
-                print(label, (left, top), (right, bottom))
+                # print(label, (left, top), (right, bottom))
 
                 # My kingdom for a good redistributable image drawing library.
-                for i in range(thickness):
-                    draw.rectangle(
-                        [left + i, top + i, right - i, bottom - i],
-                        outline=(127, 255, 0))
+                # for i in range(thickness):
+                #     draw.rectangle(
+                #         [left + i, top + i, right - i, bottom - i],
+                #         outline=(127, 255, 0))
 
         end = timer()
-        print(end - start)
+        # print(end - start)
         print('--------------------')
         return image, out_boxes2, out_scores2
 
     def close_session(self):
         self.sess.close()
 
-def track_objects(image, objects, count1, count2, trackableObjects):
+def count_line(width, height ,x):
+    y = int(((height - (height / 3.4)) / width) * x) + int(height / 3.4)
+    return y
+
+def get_color(image, objects):
+    color_list = {}
+    for (object_ID, centroid) in objects.items():
+        img = image[int(centroid[1]) : int(centroid[1]) + 20, int(centroid[0]) : int(centroid[0]) + 20]
+        r = np.floor(img.T[2].flatten().mean()).astype('int32')
+        g = np.floor(img.T[1].flatten().mean()).astype('int32')
+        b = np.floor(img.T[0].flatten().mean()).astype('int32')
+        # print((r, g, b))
+        hsv = cv2.cvtColor(np.array([[[b, g, r]]], dtype=np.uint8), cv2.COLOR_BGR2HSV)[0][0]
+
+        if hsv[1] > 50:
+            if hsv[2] > 60:
+                if hsv[0] < 15 or hsv[0] >= 160:
+                    color_list[object_ID] = ('red', hsv)
+                elif hsv[0] < 40:
+                    color_list[object_ID] = ('orange, yellow', hsv)
+                elif hsv[0] < 80:
+                    color_list[object_ID] = ('green', hsv)
+                elif hsv[0] < 130:
+                    color_list[object_ID] = ('blue', hsv)
+                elif hsv[0] < 160:
+                    color_list[object_ID] = ('purple, pink', hsv)
+                else:
+                    color_list[object_ID] = ('??', hsv)
+            else:
+                color_list[object_ID] = ('??', hsv)
+        else:
+            if hsv[2] > 180:
+                color_list[object_ID] = ('white', hsv)
+            elif hsv[2] > 120:
+                color_list[object_ID] = ('gray', hsv)
+            elif hsv[2] <= 120:
+                color_list[object_ID] = ('black', hsv)
+            else:
+                color_list[object_ID] = ('??', hsv)
+    return color_list        
+
+def track_objects(image, objects, count1, count2, trackableObjects, color_list):
     font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
                 size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
 
@@ -191,18 +232,23 @@ def track_objects(image, objects, count1, count2, trackableObjects):
 
             # to.centroids.append(centroid)
             if not to.counted:
-                if centroid[1] < (image.height / image.width) * centroid[0]:
-                    if to.centroids[0][1] > (image.height / image.width) * to.centroids[0][0]:
+                first_y = count_line(image.size[0], image.size[1], centroid[0])
+                now_y = count_line(image.size[0], image.size[1], to.centroids[0][0])
+
+                if centroid[1] < first_y:
+                    if to.centroids[0][1] > now_y:
                         count1 += 1
                         to.counted = True
-                elif centroid[1] > (image.height / image.width) * centroid[0]:
-                    if to.centroids[0][1] < (image.height / image.width) * to.centroids[0][0]:
+                elif centroid[1] > first_y:
+                    if to.centroids[0][1] < now_y:
                         count2 += 1
                         to.counted = True
 
         trackableObjects[objectID] = to
 
-        text = "ID {}".format(objectID)
+        text = "ID {} {}".format(objectID, color_list[objectID][0])
+        text2 = " {}".format(color_list[objectID][1])
+        print(text + text2)
         draw = ImageDraw.Draw(image)
         draw.ellipse(
             [centroid[0] - 5, centroid[1] -5, centroid[0] + 5, centroid[1] + 5],
@@ -222,7 +268,7 @@ def max_min_area(mask, boxes, scores, max_area, min_area):
             mask1 = mask[top : bottom, left : right]
 
             max_lim = mask1.shape[1] * mask1.shape[0]
-            min_lim = (mask1.shape[1] * mask1.shape[0]) / 4
+            min_lim = (mask.shape[1] * mask.shape[0]) * 0.03
 
             contours, hierarchy = cv2.findContours(mask1.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             for _, cnt in enumerate(contours):
@@ -232,6 +278,39 @@ def max_min_area(mask, boxes, scores, max_area, min_area):
                 if min_area > area and min_lim < area:
                     min_area = area
     return max_area, min_area
+
+def get_area(mask, boxes, scores):
+    del_list = []
+    flag = False
+    for (i, box) in enumerate(boxes):
+        if scores[i] >= 0.20:
+            top = box[0] // 3
+            left = box[1] // 3
+            bottom = box[2] // 3
+            right = box[3] // 3
+            mask1 = mask[top : bottom, left : right]
+
+            max_lim = mask1.shape[1] * mask1.shape[0]
+            min_lim = (mask.shape[1] * mask.shape[0]) * 0.03
+
+            contours, hierarchy = cv2.findContours(mask1.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            if len(contours) == 0:
+                del_list.append(box)
+            else:
+                for _, cnt in enumerate(contours):
+                    area = cv2.contourArea(cnt)
+                    if area >= max_lim or area < min_lim:
+                        flag = True
+                    else:
+                        flag = False
+                        break
+                if flag:
+                    del_list.append(box)
+        else:
+            del_list.append(box)
+    for n in del_list:
+        boxes = [box for box in boxes if box != n]
+    return boxes
 
 def detect_video(yolo, video_path, output_path=""):
     if video_path.isdigit():
@@ -269,27 +348,33 @@ def detect_video(yolo, video_path, output_path=""):
     while True:
         _, frame = vid.read()
         if type(frame) == type(None): break
-        no_use, use = np.split(frame, [140])
+        # no_use, use = np.split(frame, [140])
 
-        resize_img = cv2.resize(use, (use.shape[1] // 3, use.shape[0] // 3))
+        resize_img = cv2.resize(frame, (frame.shape[1] // 3, frame.shape[0] // 3))
         mask = fgbg.apply(resize_img)
+        mask1 = mask
         # thresh = cv2.threshold(mask, 3, 255, cv2.THRESH_BINARY)[1]
         # cv2.namedWindow('maskwindow', cv2.WINDOW_NORMAL)
         # cv2.imshow('maskwindow', mask)
 
-        contours, hierarchy = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if flag:
-            out_image = use
+            out_image = frame
+            contours, hierarchy = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             for _, cnt in enumerate(contours):
                 area = cv2.contourArea(cnt)
                 if area > min_area and area < (max_area / 2):
                     flag = False
                     break
         else:
-            image = Image.fromarray(use)
+            image = Image.fromarray(frame)
             image, out_boxes, out_scores = yolo.detect_image(image)
+            out_boxes = get_area(mask, out_boxes, out_scores)
+            if len(out_boxes) != 0:
+                for i, box in enumerate(out_boxes):
+                    cv2.rectangle(mask1, (box[1] // 3, box[0] // 3), (box[3] // 3, box[2] // 3), (127, 255, 0), thickness=2)
             objects = ct.update(out_boxes)
-            image, to_left, to_right = track_objects(image, objects, to_left, to_right, trackableObjects)
+            color_list = get_color(frame, objects)
+            image, to_left, to_right = track_objects(image, objects, to_left, to_right, trackableObjects, color_list)
             out_image = np.asarray(image)
 
             if len(objects) != 0:
@@ -304,9 +389,10 @@ def detect_video(yolo, video_path, output_path=""):
             elif len(objects) == 0 and area_time >= 150:
                 flag = True
 
-        cv2.line(out_image, (0, 0), (out_image.shape[1], out_image.shape[0]), color=(127, 255, 0), thickness=3)
+        cv2.line(out_image, (0, count_line(out_image.shape[1], out_image.shape[0], 0)), (out_image.shape[1], count_line(out_image.shape[1], out_image.shape[0], out_image.shape[1])), color=(127, 255, 0), thickness=3)
 
-        result = np.concatenate([no_use, out_image])
+        # result = np.concatenate([no_use, out_image])
+        result = out_image
 
         curr_time = timer()
         exec_time = curr_time - prev_time
@@ -319,6 +405,7 @@ def detect_video(yolo, video_path, output_path=""):
             if max_fps < curr_fps:
                 max_fps = curr_fps
             curr_fps = 0
+        print(fps)
         cv2.putText(result, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                     fontScale=0.50, color=(127, 255, 0), thickness=2)
 
@@ -334,6 +421,8 @@ def detect_video(yolo, video_path, output_path=""):
 
         cv2.namedWindow("result", cv2.WINDOW_NORMAL)
         cv2.imshow("result", result)
+        cv2.namedWindow('maskwindow', cv2.WINDOW_NORMAL)
+        cv2.imshow('maskwindow', mask1)
 
         if isOutput:
             out.write(result)
