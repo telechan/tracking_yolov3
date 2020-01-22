@@ -174,6 +174,10 @@ class YOLO(object):
     def close_session(self):
         self.sess.close()
 
+def count_line(width, height ,x):
+    y = int(((height - (height / 3.4)) / width) * x) + int(height / 3.4)
+    return y
+
 def get_color(image, objects):
     color_list = {}
     for (object_ID, centroid) in objects.items():
@@ -228,12 +232,15 @@ def track_objects(image, objects, count1, count2, trackableObjects, color_list):
 
             # to.centroids.append(centroid)
             if not to.counted:
-                if centroid[1] < int(((image.size[1] / 3.4) / image.size[0]) * centroid[0]):
-                    if to.centroids[0][1] > int(((image.size[1] / 3.4) / image.size[0]) * to.centroids[0][0]):
+                first_y = count_line(image.size[0], image.size[1], centroid[0])
+                now_y = count_line(image.size[0], image.size[1], to.centroids[0][0])
+
+                if centroid[1] < first_y:
+                    if to.centroids[0][1] > now_y:
                         count1 += 1
                         to.counted = True
-                elif centroid[1] > int(((image.size[1] / 3.4) / image.size[0]) * centroid[0]):
-                    if to.centroids[0][1] < int(((image.size[1] / 3.4) / image.size[0]) * to.centroids[0][0]):
+                elif centroid[1] > first_y:
+                    if to.centroids[0][1] < now_y:
                         count2 += 1
                         to.counted = True
 
@@ -261,7 +268,7 @@ def max_min_area(mask, boxes, scores, max_area, min_area):
             mask1 = mask[top : bottom, left : right]
 
             max_lim = mask1.shape[1] * mask1.shape[0]
-            min_lim = (mask.shape[1] * mask.shape[0]) * 0.1
+            min_lim = (mask.shape[1] * mask.shape[0]) * 0.03
 
             contours, hierarchy = cv2.findContours(mask1.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             for _, cnt in enumerate(contours):
@@ -284,7 +291,7 @@ def get_area(mask, boxes, scores):
             mask1 = mask[top : bottom, left : right]
 
             max_lim = mask1.shape[1] * mask1.shape[0]
-            min_lim = (mask.shape[1] * mask.shape[0]) * 0.1
+            min_lim = (mask.shape[1] * mask.shape[0]) * 0.03
 
             contours, hierarchy = cv2.findContours(mask1.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             if len(contours) == 0:
@@ -296,6 +303,7 @@ def get_area(mask, boxes, scores):
                         flag = True
                     else:
                         flag = False
+                        break
                 if flag:
                     del_list.append(box)
         else:
@@ -344,7 +352,7 @@ def detect_video(yolo, video_path, output_path=""):
 
         resize_img = cv2.resize(frame, (frame.shape[1] // 3, frame.shape[0] // 3))
         mask = fgbg.apply(resize_img)
-        # mask1 = mask
+        mask1 = mask
         # thresh = cv2.threshold(mask, 3, 255, cv2.THRESH_BINARY)[1]
         # cv2.namedWindow('maskwindow', cv2.WINDOW_NORMAL)
         # cv2.imshow('maskwindow', mask)
@@ -361,9 +369,9 @@ def detect_video(yolo, video_path, output_path=""):
             image = Image.fromarray(frame)
             image, out_boxes, out_scores = yolo.detect_image(image)
             out_boxes = get_area(mask, out_boxes, out_scores)
-            # if len(out_boxes) != 0:
-            #     for i, box in enumerate(out_boxes):
-            #         cv2.rectangle(mask1, (box[1] // 3, box[0] // 3), (box[3] // 3, box[2] // 3), (127, 255, 0), thickness=2)
+            if len(out_boxes) != 0:
+                for i, box in enumerate(out_boxes):
+                    cv2.rectangle(mask1, (box[1] // 3, box[0] // 3), (box[3] // 3, box[2] // 3), (127, 255, 0), thickness=2)
             objects = ct.update(out_boxes)
             color_list = get_color(frame, objects)
             image, to_left, to_right = track_objects(image, objects, to_left, to_right, trackableObjects, color_list)
@@ -375,13 +383,13 @@ def detect_video(yolo, video_path, output_path=""):
                 non_IDs = list(set(trackable_ID) - set(objects_ID))
                 for non_ID in non_IDs:
                     del trackableObjects[non_ID]
-                if area_time < 120:
+                if area_time < 150:
                     max_area, min_area = max_min_area(mask, out_boxes, out_scores, max_area, min_area)
                     area_time += 1
-            elif len(objects) == 0 and area_time >= 120:
+            elif len(objects) == 0 and area_time >= 150:
                 flag = True
 
-        cv2.line(out_image, (0, int(out_image.shape[0] / 3.4)), (out_image.shape[1], out_image.shape[0]), color=(127, 255, 0), thickness=3)
+        cv2.line(out_image, (0, count_line(out_image.shape[1], out_image.shape[0], 0)), (out_image.shape[1], count_line(out_image.shape[1], out_image.shape[0], out_image.shape[1])), color=(127, 255, 0), thickness=3)
 
         # result = np.concatenate([no_use, out_image])
         result = out_image
@@ -397,6 +405,7 @@ def detect_video(yolo, video_path, output_path=""):
             if max_fps < curr_fps:
                 max_fps = curr_fps
             curr_fps = 0
+        print(fps)
         cv2.putText(result, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                     fontScale=0.50, color=(127, 255, 0), thickness=2)
 
@@ -412,6 +421,8 @@ def detect_video(yolo, video_path, output_path=""):
 
         cv2.namedWindow("result", cv2.WINDOW_NORMAL)
         cv2.imshow("result", result)
+        cv2.namedWindow('maskwindow', cv2.WINDOW_NORMAL)
+        cv2.imshow('maskwindow', mask1)
 
         if isOutput:
             out.write(result)

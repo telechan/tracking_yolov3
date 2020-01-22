@@ -161,10 +161,10 @@ class YOLO(object):
                 # print(label, (left, top), (right, bottom))
 
                 # My kingdom for a good redistributable image drawing library.
-                for i in range(thickness):
-                    draw.rectangle(
-                        [left + i, top + i, right - i, bottom - i],
-                        outline=(127, 255, 0))
+                # for i in range(thickness):
+                #     draw.rectangle(
+                #         [left + i, top + i, right - i, bottom - i],
+                #         outline=(127, 255, 0))
 
         end = timer()
         # print(end - start)
@@ -173,6 +173,10 @@ class YOLO(object):
 
     def close_session(self):
         self.sess.close()
+
+def count_line(width, height ,x):
+    y = int(((height - (height / 3.4)) / width) * x) + int(height / 3.4)
+    return y
 
 def get_color(image, objects):
     color_list = {}
@@ -228,12 +232,15 @@ def track_objects(image, objects, count1, count2, trackableObjects, color_list):
 
             # to.centroids.append(centroid)
             if not to.counted:
-                if centroid[1] < (image.height / image.width) * centroid[0]:
-                    if to.centroids[0][1] > (image.height / image.width) * to.centroids[0][0]:
+                first_y = count_line(image.size[0], image.size[1], centroid[0])
+                now_y = count_line(image.size[0], image.size[1], to.centroids[0][0])
+
+                if centroid[1] < first_y:
+                    if to.centroids[0][1] > now_y:
                         count1 += 1
                         to.counted = True
-                elif centroid[1] > (image.height / image.width) * centroid[0]:
-                    if to.centroids[0][1] < (image.height / image.width) * to.centroids[0][0]:
+                elif centroid[1] > first_y:
+                    if to.centroids[0][1] < now_y:
                         count2 += 1
                         to.counted = True
 
@@ -261,7 +268,7 @@ def max_min_area(mask, boxes, scores, max_area, min_area):
             mask1 = mask[top : bottom, left : right]
 
             max_lim = mask1.shape[1] * mask1.shape[0]
-            min_lim = (mask1.shape[1] * mask1.shape[0]) / 4
+            min_lim = (mask.shape[1] * mask.shape[0]) * 0.03
 
             contours, hierarchy = cv2.findContours(mask1.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             for _, cnt in enumerate(contours):
@@ -272,15 +279,38 @@ def max_min_area(mask, boxes, scores, max_area, min_area):
                     min_area = area
     return max_area, min_area
 
-# def get_area(mask, boxes):
-#     for (i, box) in enumerate(boxes):
-#         if scores[i] >= 0.20:
-#             top = box[0] // 3
-#             left = box[1] // 3
-#             bottom = box[2] // 3
-#             right = box[3] // 3
-#             mask1 = mask[top : bottom, left : right]
-#             contours, hierarchy = cv2.findContours(mask1.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+def get_area(mask, boxes, scores):
+    del_list = []
+    flag = False
+    for (i, box) in enumerate(boxes):
+        if scores[i] >= 0.20:
+            top = box[0] // 3
+            left = box[1] // 3
+            bottom = box[2] // 3
+            right = box[3] // 3
+            mask1 = mask[top : bottom, left : right]
+
+            max_lim = mask1.shape[1] * mask1.shape[0]
+            min_lim = (mask.shape[1] * mask.shape[0]) * 0.03
+
+            contours, hierarchy = cv2.findContours(mask1.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            if len(contours) == 0:
+                del_list.append(box)
+            else:
+                for _, cnt in enumerate(contours):
+                    area = cv2.contourArea(cnt)
+                    if area >= max_lim or area < min_lim:
+                        flag = True
+                    else:
+                        flag = False
+                        break
+                if flag:
+                    del_list.append(box)
+        else:
+            del_list.append(box)
+    for n in del_list:
+        boxes = [box for box in boxes if box != n]
+    return boxes
 
 def detect_video(yolo, video_path, output_path=""):
     if video_path.isdigit():
@@ -338,6 +368,7 @@ def detect_video(yolo, video_path, output_path=""):
         else:
             image = Image.fromarray(frame)
             image, out_boxes, out_scores = yolo.detect_image(image)
+            out_boxes = get_area(mask, out_boxes, out_scores)
             if len(out_boxes) != 0:
                 for i, box in enumerate(out_boxes):
                     cv2.rectangle(mask1, (box[1] // 3, box[0] // 3), (box[3] // 3, box[2] // 3), (127, 255, 0), thickness=2)
@@ -358,7 +389,7 @@ def detect_video(yolo, video_path, output_path=""):
             elif len(objects) == 0 and area_time >= 150:
                 flag = True
 
-        cv2.line(out_image, (0, 0), (out_image.shape[1], out_image.shape[0]), color=(127, 255, 0), thickness=3)
+        cv2.line(out_image, (0, count_line(out_image.shape[1], out_image.shape[0], 0)), (out_image.shape[1], count_line(out_image.shape[1], out_image.shape[0], out_image.shape[1])), color=(127, 255, 0), thickness=3)
 
         # result = np.concatenate([no_use, out_image])
         result = out_image
@@ -374,6 +405,7 @@ def detect_video(yolo, video_path, output_path=""):
             if max_fps < curr_fps:
                 max_fps = curr_fps
             curr_fps = 0
+        print(fps)
         cv2.putText(result, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                     fontScale=0.50, color=(127, 255, 0), thickness=2)
 
@@ -388,7 +420,9 @@ def detect_video(yolo, video_path, output_path=""):
             cv2.putText(result, text=textInfo, org=(10, result.shape[0] - ((30 * i) + 20)), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.7, color=(127, 255, 0), thickness=1)
 
         cv2.namedWindow("result", cv2.WINDOW_NORMAL)
-        cv2.imshow("result", mask1)
+        cv2.imshow("result", result)
+        cv2.namedWindow('maskwindow', cv2.WINDOW_NORMAL)
+        cv2.imshow('maskwindow', mask1)
 
         if isOutput:
             out.write(result)
