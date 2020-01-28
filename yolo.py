@@ -161,10 +161,10 @@ class YOLO(object):
                 # print(label, (left, top), (right, bottom))
 
                 # My kingdom for a good redistributable image drawing library.
-                # for i in range(thickness):
-                #     draw.rectangle(
-                #         [left + i, top + i, right - i, bottom - i],
-                #         outline=(127, 255, 0))
+                for i in range(thickness):
+                    draw.rectangle(
+                        [left + i, top + i, right - i, bottom - i],
+                        outline=(127, 255, 0))
 
         end = timer()
         # print(end - start)
@@ -238,8 +238,8 @@ def detect_video(yolo, video_path, output_path=""):
     ct = CentroidTracker(maxDisappeared=20, maxDistance=90)
     trackableObjects = {}
     del_ID = 0
-    to_left = 0
-    to_right = 0
+    count_b = 0
+    count_a = 0
     area_time = 0
     accum_time = 0
     curr_fps = 0
@@ -253,7 +253,7 @@ def detect_video(yolo, video_path, output_path=""):
         image = Image.fromarray(frame)
         image, out_boxes, out_scores = yolo.detect_image(image)
         objects = ct.update(out_boxes)
-        image, to_left, to_right = track_objects(image, objects, to_left, to_right, trackableObjects)
+        image, count_b, count_a = track_objects(image, objects, count_b, count_a, trackableObjects)
         out_image = np.asarray(image)
 
         if len(objects) != 0:
@@ -281,8 +281,8 @@ def detect_video(yolo, video_path, output_path=""):
                     fontScale=0.50, color=(127, 255, 0), thickness=2)
 
         info = [
-            ("to left", to_left),
-            ("to right", to_right),
+            ("count B", count_b),
+            ("count A", count_a),
         ]
         for (i, (k, v)) in enumerate(info):
             textInfo = "{}: {}".format(k, v)
