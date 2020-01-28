@@ -181,7 +181,7 @@ def count_line(width, height ,x):
 def get_color(image, objects):
     color_list = {}
     for (object_ID, centroid) in objects.items():
-        img = image[int(centroid[1]) : int(centroid[1]) + 20, int(centroid[0]) : int(centroid[0]) + 20]
+        img = image[int(centroid[1]) : int(centroid[1]) + 30, int(centroid[0]) : int(centroid[0]) + 30]
         r = np.floor(img.T[2].flatten().mean()).astype('int32')
         g = np.floor(img.T[1].flatten().mean()).astype('int32')
         b = np.floor(img.T[0].flatten().mean()).astype('int32')
@@ -333,8 +333,8 @@ def detect_video(yolo, video_path, output_path=""):
     ct = CentroidTracker(maxDisappeared=20, maxDistance=90)
     trackableObjects = {}
     del_ID = 0
-    to_left = 0
-    to_right = 0
+    count_a = 0
+    count_b = 0
     flag = False
     max_area = 0
     min_area = video_size[0] * video_size[1]
@@ -351,7 +351,7 @@ def detect_video(yolo, video_path, output_path=""):
 
         resize_img = cv2.resize(frame, (frame.shape[1] // 3, frame.shape[0] // 3))
         mask = fgbg.apply(resize_img)
-        mask1 = mask
+        # mask1 = mask
         # thresh = cv2.threshold(mask, 3, 255, cv2.THRESH_BINARY)[1]
         # cv2.namedWindow('maskwindow', cv2.WINDOW_NORMAL)
         # cv2.imshow('maskwindow', mask)
@@ -368,13 +368,16 @@ def detect_video(yolo, video_path, output_path=""):
             image = Image.fromarray(frame)
             image, out_boxes, out_scores = yolo.detect_image(image)
             out_boxes = get_area(mask, out_boxes, out_scores)
-            if len(out_boxes) != 0:
-                for i, box in enumerate(out_boxes):
-                    cv2.rectangle(mask1, (box[1] // 3, box[0] // 3), (box[3] // 3, box[2] // 3), (127, 255, 0), thickness=2)
+            # if len(out_boxes) != 0:
+            #     for i, box in enumerate(out_boxes):
+            #         cv2.rectangle(frame, (box[1] // 3, box[0] // 3), (box[3] // 3, box[2] // 3), (127, 255, 0), thickness=1)
             objects = ct.update(out_boxes)
             color_list = get_color(frame, objects)
-            image, to_left, to_right = track_objects(image, objects, to_left, to_right, trackableObjects, color_list)
+            image, count_b, count_a = track_objects(image, objects, count_b, count_a, trackableObjects, color_list)
             out_image = np.asarray(image)
+            if len(out_boxes) != 0:
+                for i, box in enumerate(out_boxes):
+                    cv2.rectangle(out_image, (box[1], box[0]), (box[3], box[2]), (127, 255, 0), thickness=2)
 
             if len(objects) != 0:
                 objects_ID = list(objects.keys())
@@ -406,10 +409,10 @@ def detect_video(yolo, video_path, output_path=""):
                     fontScale=0.50, color=(127, 255, 0), thickness=2)
 
         info = [
-            ("to left", to_left),
-            ("to right", to_right),
-            ("max area", max_area // 3),
-            ("min area", min_area)
+            ("count B", count_b),
+            ("coutn A", count_a),
+            ("min area", min_area),
+            ("max area", max_area // 3)
         ]
         for (i, (k, v)) in enumerate(info):
             textInfo = "{}: {}".format(k, v)
@@ -417,8 +420,8 @@ def detect_video(yolo, video_path, output_path=""):
 
         cv2.namedWindow("result", cv2.WINDOW_NORMAL)
         cv2.imshow("result", out_image)
-        cv2.namedWindow('maskwindow', cv2.WINDOW_NORMAL)
-        cv2.imshow('maskwindow', mask1)
+        # cv2.namedWindow('maskwindow', cv2.WINDOW_NORMAL)
+        # cv2.imshow('maskwindow', mask1)
 
         if isOutput:
             out.write(out_image)
