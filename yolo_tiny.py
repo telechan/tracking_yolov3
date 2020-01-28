@@ -412,7 +412,7 @@ def detect_video(yolo, video_path, output_path=""):
             ("count B", count_b),
             ("coutn A", count_a),
             ("min area", min_area),
-            ("max area", max_area // 3)
+            ("max area", max_area)
         ]
         for (i, (k, v)) in enumerate(info):
             textInfo = "{}: {}".format(k, v)
