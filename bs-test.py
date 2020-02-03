@@ -4,7 +4,9 @@ import os
 
 def run_KNN(video_path, out_path=""):
     fgbg = cv2.bgsegm.createBackgroundSubtractorLSBP()
-    fgbg2 = cv2.bgsegm.createBackgroundSubtractorGSOC()
+    # fgbg = cv2.bgsegm.createBackgroundSubtractorGSOC()
+    # fgbg = cv2.bgsegm.createBackgroundSubtractorMOG()
+    # fgbg = cv2.createBackgroundSubtractorMOG2()
 
     if video_path.isdigit():
         video_path = int(video_path)
@@ -18,7 +20,7 @@ def run_KNN(video_path, out_path=""):
     isOutput = True if out_path != "" else False
     if isOutput:
         # print("!!! TYPE:", type(output_path), type(video_FourCC), type(video_fps), type(video_size))
-        out = cv2.VideoWriter(out_path, video_FourCC, video_fps, (video_size[0], video_size[1] // 2), 0)
+        out = cv2.VideoWriter(out_path, video_FourCC, video_fps, (video_size[0] // 3, video_size[1] // 3), 0)
         # out = cv2.VideoWriter(out_path, video_FourCC, video_fps, video_size)
     print(video_size)
     
@@ -38,22 +40,22 @@ def run_KNN(video_path, out_path=""):
         # mask = fgbg.apply(image)
         # cv2.imshow('result mask', mask)
 
-        mask1 = fgbg2.apply(image)
-        # mask2 = fgbg2.apply(image2)
-        # mask3 = fgbg2.apply(image3)
-        # mask4 = fgbg2.apply(frame)
+        mask1 = fgbg.apply(image)
+        # mask2 = fgbg2.apply(image)
+        # mask3 = fgbg3.apply(image)
+        # mask4 = fgbg4.apply(image)
         # cv2.imshow('result mask', mask2)
 
-        # thresh = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)[1]
+        # thresh = cv2.threshold(mask1, 127, 255, cv2.THRESH_BINARY)[1]
         # cv2.imshow('Threshold Frame', thresh)
 
-        # thresh2 = cv2.threshold(mask, 3, 255, cv2.THRESH_BINARY)[1]
+        thresh = cv2.threshold(mask1, 3, 255, cv2.THRESH_BINARY)[1]
         # cv2.imshow('Threshold Frame', thresh2)
 
         # img_KNN = cv2.hconcat([mask1, mask2])
         # img_GSOC = cv2.hconcat([mask3, mask4])
 
-        re_mask = mask1[0 : mask1.shape[0] // 2, mask1.shape[1] // 2 : mask1.shape[0]]
+        # re_mask = mask1[0 : mask1.shape[0] // 2, mask1.shape[1] // 2 : mask1.shape[0]]
 
         # contours1, hierarchy1 = cv2.findContours(mask1.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         # for i, cnt in enumerate(contours1):
@@ -95,12 +97,12 @@ def run_KNN(video_path, out_path=""):
 
         # result_image = cv2.vconcat([img_KNN, img_GSOC])
         # result_image2 = cv2.vconcat([image1, image2])
-        cv2.imshow('bs window', mask1)
-        cv2.imshow('re mask', re_mask)
+        cv2.imshow('bs window', thresh)
+        # cv2.imshow('re mask', re_mask)
         # cv2.imshow('area window', result_image2)
 
         if isOutput:
-            out.write(image1)
+            out.write(thresh)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     
@@ -109,7 +111,7 @@ def run_KNN(video_path, out_path=""):
 def select_in_out():
     # input_path = input('Input video path:')
     # output_path = input('Output video path:')
-    run_KNN('video/video08.mp4', '')
+    run_KNN('video/video08.mp4', 'video/video08_LSBP.mp4')
     # finished = True
     # while finished:
     #     input_path = input('Input video path:')

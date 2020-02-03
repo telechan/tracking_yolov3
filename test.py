@@ -1,7 +1,17 @@
-import sys
-import numpy as np
 import cv2
 
-img = cv2.imread('./image/parking04.png')
-hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-cv2.imwrite('./image/parking04_hsv.png', hsv)
+cap = cv2.VideoCapture(0)
+bgs = cv2.bgsegm.createBackgroundSubtractorLSBP()
+
+while(cap.isOpened()):
+    ret, frame = cap.read()
+    resize_img = cv2.resize(frame, (frame.shape[1] // 3, frame.shape[0] // 3))
+    mask = bgs.apply(resize_img)
+    bg = bgs.getBackgroundImage()
+    cv2.imshow('mask', mask)
+    cv2.imshow('bg', bg)
+    if cv2.waitKey(1) != -1:
+        break
+
+cap.release()
+cv2.destroyAllWindows()
