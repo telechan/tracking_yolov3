@@ -111,7 +111,7 @@ def run_KNN(video_path, out_path=""):
 def select_in_out():
     # input_path = input('Input video path:')
     # output_path = input('Output video path:')
-    run_KNN('video/video08.mp4', 'video/video08_LSBP.mp4')
+    run_KNN('video/parking.mov', '')
     # finished = True
     # while finished:
     #     input_path = input('Input video path:')
