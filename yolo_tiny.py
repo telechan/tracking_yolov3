@@ -175,7 +175,7 @@ class YOLO(object):
         self.sess.close()
 
 def count_line(width, height ,x):
-    # video08.mp4のライン
+    # parking00.mp4, parking01.movのライン
     y = int(((height - (height / 3.4)) / width) * x) + int(height / 3.4)
     # parking07.movのライン
     # y = int(((height / 5) / width) * x) + int(height / 2)
@@ -358,8 +358,8 @@ def detect_video(yolo, video_path, output_path=""):
         mask = fgbg.apply(resize_img)
         # mask1 = mask
         # thresh = cv2.threshold(mask, 3, 255, cv2.THRESH_BINARY)[1]
-        # cv2.namedWindow('maskwindow', cv2.WINDOW_NORMAL)
-        # cv2.imshow('maskwindow', mask)
+        cv2.namedWindow('maskwindow', cv2.WINDOW_NORMAL)
+        cv2.imshow('maskwindow', mask)
 
         if flag:
             out_image = frame
