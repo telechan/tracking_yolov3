@@ -175,7 +175,7 @@ class YOLO(object):
         self.sess.close()
 
 def count_line(width, height ,x):
-    # video08.mp4のライン
+    # parking00.mp4, parking01.movのライン
     y = int(((height - (height / 3.4)) / width) * x) + int(height / 3.4)
     # parking07.movのライン
     # y = int(((height / 5) / width) * x) + int(height / 2)
