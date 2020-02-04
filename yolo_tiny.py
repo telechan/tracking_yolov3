@@ -175,7 +175,12 @@ class YOLO(object):
         self.sess.close()
 
 def count_line(width, height ,x):
+    # video08.mp4のライン
     y = int(((height - (height / 3.4)) / width) * x) + int(height / 3.4)
+    # parking07.movのライン
+    # y = int(((height / 5) / width) * x) + int(height / 2)
+    # parking06.movのライン
+    # y = int(-1 * ((height + (height / 3)) / width) * x) + int(height + (height / 3))
     return y
 
 def get_color(image, objects):
@@ -268,7 +273,7 @@ def max_min_area(mask, boxes, scores, max_area, min_area):
             mask1 = mask[top : bottom, left : right]
 
             max_lim = mask1.shape[1] * mask1.shape[0]
-            min_lim = (mask.shape[1] * mask.shape[0]) * 0.03
+            min_lim = (mask.shape[1] * mask.shape[0]) * 0.005
 
             contours, hierarchy = cv2.findContours(mask1.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             for _, cnt in enumerate(contours):
@@ -291,7 +296,7 @@ def get_area(mask, boxes, scores):
             mask1 = mask[top : bottom, left : right]
 
             max_lim = mask1.shape[1] * mask1.shape[0]
-            min_lim = (mask.shape[1] * mask.shape[0]) * 0.03
+            min_lim = (mask.shape[1] * mask.shape[0]) * 0.005
 
             contours, hierarchy = cv2.findContours(mask1.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             if len(contours) == 0:
@@ -361,7 +366,7 @@ def detect_video(yolo, video_path, output_path=""):
             contours, hierarchy = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             for _, cnt in enumerate(contours):
                 area = cv2.contourArea(cnt)
-                if area > min_area and area < (max_area / 2):
+                if area > min_area and area < (max_area):
                     flag = False
                     break
         else:
