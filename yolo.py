@@ -186,7 +186,7 @@ def count_line(width, height ,x):
 def get_color(image, objects):
     color_list = {}
     for (object_ID, centroid) in objects.items():
-        img = image[int(centroid[1]) : int(centroid[1]) + 30, int(centroid[0]) : int(centroid[0]) + 30]
+        img = image[int(centroid[1]) : int(centroid[1]) + 40, int(centroid[0]) -20 : int(centroid[0]) + 20]
         r = np.floor(img.T[2].flatten().mean()).astype('int32')
         g = np.floor(img.T[1].flatten().mean()).astype('int32')
         b = np.floor(img.T[0].flatten().mean()).astype('int32')
@@ -335,7 +335,7 @@ def detect_video(yolo, video_path, output_path=""):
 
     # fgbg = cv2.createBackgroundSubtractorKNN()
     fgbg = cv2.bgsegm.createBackgroundSubtractorGSOC()
-    ct = CentroidTracker(maxDisappeared=20, maxDistance=90)
+    ct = CentroidTracker(maxDisappeared=40, maxDistance=90)
     trackableObjects = {}
     del_ID = 0
     count_a = 0
