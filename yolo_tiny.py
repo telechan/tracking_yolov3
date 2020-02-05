@@ -240,7 +240,7 @@ def detect_video(yolo, video_path, output_path=""):
         # print("!!! TYPE:", type(output_path), type(video_FourCC), type(video_fps), type(video_size))
         out = cv2.VideoWriter(output_path, video_FourCC, video_fps, video_size)
 
-    ct = CentroidTracker(maxDisappeared=20, maxDistance=90)
+    ct = CentroidTracker(maxDisappeared=40, maxDistance=90)
     trackableObjects = {}
     del_ID = 0
     count_b = 0
