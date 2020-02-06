@@ -250,6 +250,8 @@ def detect_video(yolo, video_path, output_path=""):
     curr_fps = 0
     max_fps = 0
     fps = "FPS: ??"
+    sum_fps = 0
+    n = 0
 
     prev_time = timer()
     while True:
@@ -280,8 +282,10 @@ def detect_video(yolo, video_path, output_path=""):
             fps = "FPS: " + str(curr_fps)
             if max_fps < curr_fps:
                 max_fps = curr_fps
+            sum_fps += curr_fps
+            n += 1
             curr_fps = 0
-        print(fps)
+            print(fps)
         cv2.putText(out_image, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                     fontScale=0.50, color=(127, 255, 0), thickness=2)
 
@@ -302,4 +306,5 @@ def detect_video(yolo, video_path, output_path=""):
             break
 
     print("Max FPS: {}FPS".format(max_fps))
+    print("Ave FPS: {:.2f}FPS".format(sum_fps / n))
     yolo.close_session()
