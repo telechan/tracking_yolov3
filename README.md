@@ -1,12 +1,18 @@
 # Car Counting YOLOv3
 
 ## Introduction
-This is an implementation of the car tracking and counting function to [keras-yolo3](https://github.com/qqwweee/keras-yolo3).
- It used the centroid tracking algorithm of [this article](https://www.pyimagesearch.com/2018/08/13/opencv-people-counter/).
+[keras-yolo3](https://github.com/qqwweee/keras-yolo3)をベースに車両の追跡・カウントを行うプログラムです．
+追跡手法には[こちらのブログ記事](https://www.pyimagesearch.com/2018/08/13/opencv-people-counter/)の内容を参考にしました．
 
-## Requirements
+## 実行環境
+実行に使ったPC環境は
+|||
+|:---:|:---:|
+|**OS**|Ubuntu|
+|**CPU**|Intel Core i7-8700|
+|**GPU**|GeForce GTX 1050 Ti|
 
-My test environment is:
+実行環境に使用したパッケージ一覧:
 - Python 3.6.7
 - tensorflow-gpu 1.12.0
 - Keras 2.1.6
@@ -15,64 +21,59 @@ My test environment is:
 - matplotlib 3.1.2
 - numpy 1.17.4
 
-You can install by running the following code:
+以下のコードでパッケージを一括インストールできます．
 ```bash
 pip install -r requirement.txt
 ```
+Keras・tensorflowのバージョンはcudaのバージョンによって変わることに注意．
 
 ## Quick Start
-
-1. Download YOLOv3 (or tiny YOLO) weights from [YOLO website](http://pjreddie.com/darknet/yolo/). Or run the following code:
-
+1. YOLOの学習済み重みを[YOLOのサイト](http://pjreddie.com/darknet/yolo/)からダウンロードしてくる. もしくは以下のコードでダウンロードする．
 ```bash
 wget https://pjreddie.com/media/files/yolov3.weights
 
-# For tiny
+# tiny版
 wget https://pjreddie.com/media/files/yolov3-tiny.weights
 ```
 
-2. Convert the Darknet YOLO weights to Keras weights.
-
+2. Darknet YOLOの重みをKeras用にコンバートする.
 ```bash
 python convert.py yolov3.cfg yolov3.weights model_data/yolo.h5
 
-# For tiny
+# tiny版
 python convert.py yolov3-tiny.cfg yolov3-tiny.weights model_data/yolo-tiny.h5
 ```
 
-3. Run YOLO detection.
+3. YOLOの実行
 
-Run with images:
+画像での実行:
 ```bash
 python yolo_video.py --image
 
-# For tiny
+# tiny版
 python yolo_video_tiny.py --image
 ```
-
-Then enter your image path. The result image will be output to the same directory.
+実行すると以下のような表示がされるので，使用したい画像のパスを入力してenterを押せば処理が行われます．
 ```bash
 Image detection mode
- Ignoring remaining command line arguments: ./path2your_video,
+Ignoring remaining command line arguments: ./path2your_video,
 2019-11-20 00:28:38.457780: I tensorflow/core/platform/cpu_feature_guard.cc:142] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
 model_data/yolo.h5 model, anchors, and classes loaded.
 Input image filepath:
 ```
 ---
-
-Run with videos:
+動画での実行:
 ```bash
 python yolo_video.py --input [your video path] --output [output path (optional)]
 
-# For tiny
+# tiny版
 python yolo_video_tiny.py --input [your video path] --output [output path (optional)]
 ```
 
-If you want to stop it type 'q'.
+"q" を押せば実行を中断できます．
 
 ## Usage
-
-Use --help to see usage of yolo_video.py:
+yolo_video.py で "--help" オプションを使うと以下のオプション詳細が確認できます．
 ```
 usage: yolo_video.py [-h] [--model MODEL] [--anchors ANCHORS]
                      [--classes CLASSES] [--gpu_num GPU_NUM] [--image]
@@ -92,5 +93,3 @@ optional arguments:
   --gpu_num GPU_NUM  Number of GPU to use, default 1
   --image            Image detection mode, will ignore all positional arguments
 ```
-
-MultiGPU usage: use `--gpu_num N` to use N GPUs. It is passed to the [Keras multi_gpu_model()](https://keras.io/utils/#multi_gpu_model).
